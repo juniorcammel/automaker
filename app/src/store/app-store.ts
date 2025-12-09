@@ -107,6 +107,7 @@ export interface AppState {
   isAutoModeRunning: boolean;
   runningAutoTasks: string[]; // Feature IDs being worked on (supports concurrent tasks)
   autoModeActivityLog: AutoModeActivity[];
+  maxConcurrency: number; // Maximum number of concurrent agent tasks
 }
 
 export interface AutoModeActivity {
@@ -174,6 +175,7 @@ export interface AppActions {
   clearRunningTasks: () => void;
   addAutoModeActivity: (activity: Omit<AutoModeActivity, "id" | "timestamp">) => void;
   clearAutoModeActivity: () => void;
+  setMaxConcurrency: (max: number) => void;
 
   // Reset
   reset: () => void;
@@ -200,6 +202,7 @@ const initialState: AppState = {
   isAutoModeRunning: false,
   runningAutoTasks: [],
   autoModeActivityLog: [],
+  maxConcurrency: 3, // Default to 3 concurrent agents
 };
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -417,6 +420,8 @@ export const useAppStore = create<AppState & AppActions>()(
 
       clearAutoModeActivity: () => set({ autoModeActivityLog: [] }),
 
+      setMaxConcurrency: (max) => set({ maxConcurrency: max }),
+
       // Reset
       reset: () => set(initialState),
     }),
@@ -430,6 +435,7 @@ export const useAppStore = create<AppState & AppActions>()(
         apiKeys: state.apiKeys,
         chatSessions: state.chatSessions,
         chatHistoryOpen: state.chatHistoryOpen,
+        maxConcurrency: state.maxConcurrency,
       }),
     }
   )

@@ -43,7 +43,8 @@ import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import { AutoModeLog } from "./auto-mode-log";
 import { AgentOutputModal } from "./agent-output-modal";
-import { Plus, RefreshCw, Play, StopCircle, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, RefreshCw, Play, StopCircle, Loader2, ChevronUp, ChevronDown, Users } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { useAutoMode } from "@/hooks/use-auto-mode";
 
 type ColumnId = Feature["status"];
@@ -64,6 +65,8 @@ export function BoardView() {
     removeFeature,
     moveFeature,
     runningAutoTasks,
+    maxConcurrency,
+    setMaxConcurrency,
   } = useAppStore();
   const [activeFeature, setActiveFeature] = useState<Feature | null>(null);
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
@@ -186,6 +189,34 @@ export function BoardView() {
     loadFeatures();
   }, [loadFeatures]);
 
+  // Sync running tasks from electron backend on mount
+  useEffect(() => {
+    const syncRunningTasks = async () => {
+      try {
+        const api = getElectronAPI();
+        if (!api?.autoMode?.status) return;
+
+        const status = await api.autoMode.status();
+        if (status.success && status.runningFeatures) {
+          console.log("[Board] Syncing running tasks from backend:", status.runningFeatures);
+
+          // Clear existing running tasks and add the actual running ones
+          const { clearRunningTasks, addRunningTask } = useAppStore.getState();
+          clearRunningTasks();
+
+          // Add each running feature to the store
+          status.runningFeatures.forEach((featureId: string) => {
+            addRunningTask(featureId);
+          });
+        }
+      } catch (error) {
+        console.error("[Board] Failed to sync running tasks:", error);
+      }
+    };
+
+    syncRunningTasks();
+  }, []);
+
   // Check which features have context files
   useEffect(() => {
     const checkAllContexts = async () => {
@@ -283,6 +314,12 @@ export function BoardView() {
     }
 
     if (!targetStatus) return;
+
+    // Check concurrency limit before moving to in_progress
+    if (targetStatus === "in_progress" && !autoMode.canStartNewTask) {
+      console.log("[Board] Cannot start new task - at max concurrency limit");
+      return;
+    }
 
     // Move the feature
     moveFeature(featureId, targetStatus);
@@ -482,7 +519,32 @@ export function BoardView() {
           <h1 className="text-xl font-bold">Kanban Board</h1>
           <p className="text-sm text-muted-foreground">{currentProject.name}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Concurrency Slider - only show after mount to prevent hydration issues */}
+          {isMounted && (
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
+              data-testid="concurrency-slider-container"
+            >
+              <Users className="w-4 h-4 text-zinc-400" />
+              <Slider
+                value={[maxConcurrency]}
+                onValueChange={(value) => setMaxConcurrency(value[0])}
+                min={1}
+                max={10}
+                step={1}
+                className="w-20"
+                data-testid="concurrency-slider"
+              />
+              <span
+                className="text-sm text-zinc-400 min-w-[2ch] text-center"
+                data-testid="concurrency-value"
+              >
+                {maxConcurrency}
+              </span>
+            </div>
+          )}
+
           {/* Auto Mode Toggle - only show after mount to prevent hydration issues */}
           {isMounted && (
             <>

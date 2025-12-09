@@ -17,6 +17,7 @@ export function useAutoMode() {
     clearRunningTasks,
     currentProject,
     addAutoModeActivity,
+    maxConcurrency,
   } = useAppStore(
     useShallow((state) => ({
       isAutoModeRunning: state.isAutoModeRunning,
@@ -27,8 +28,12 @@ export function useAutoMode() {
       clearRunningTasks: state.clearRunningTasks,
       currentProject: state.currentProject,
       addAutoModeActivity: state.addAutoModeActivity,
+      maxConcurrency: state.maxConcurrency,
     }))
   );
+
+  // Check if we can start a new task based on concurrency limit
+  const canStartNewTask = runningAutoTasks.length < maxConcurrency;
 
   // Handle auto mode events
   useEffect(() => {
@@ -178,6 +183,8 @@ export function useAutoMode() {
   return {
     isRunning: isAutoModeRunning,
     runningTasks: runningAutoTasks,
+    maxConcurrency,
+    canStartNewTask,
     start,
     stop,
   };

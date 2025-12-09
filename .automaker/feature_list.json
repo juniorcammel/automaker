@@ -34,13 +34,13 @@
       "3. wait until it is moved to verified",
       "4. assert modal is hidden"
     ],
-    "status": "backlog"
+    "status": "in_progress"
   },
   {
     "id": "feature-1765254432072-bqk25kivv",
     "category": "Automode",
     "description": "Add a concurrency slider left of automode so I can specify how many max agents should be running at one time.  if we are at max, do not pull over more tasks from the backlog",
     "steps": [],
-    "status": "backlog"
+    "status": "verified"
   }
 ]
