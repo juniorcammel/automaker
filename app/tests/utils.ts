@@ -806,3 +806,91 @@ export async function isMessageListVisible(page: Page): Promise<boolean> {
   const messageList = page.locator('[data-testid="message-list"]');
   return await messageList.isVisible();
 }
+
+/**
+ * Get the count up timer element for a specific feature card
+ */
+export async function getTimerForFeature(
+  page: Page,
+  featureId: string
+): Promise<Locator> {
+  const card = page.locator(`[data-testid="kanban-card-${featureId}"]`);
+  return card.locator('[data-testid="count-up-timer"]');
+}
+
+/**
+ * Get the timer display text for a specific feature card
+ */
+export async function getTimerDisplayForFeature(
+  page: Page,
+  featureId: string
+): Promise<string | null> {
+  const card = page.locator(`[data-testid="kanban-card-${featureId}"]`);
+  const timerDisplay = card.locator('[data-testid="timer-display"]');
+  return await timerDisplay.textContent();
+}
+
+/**
+ * Check if a timer is visible for a specific feature
+ */
+export async function isTimerVisibleForFeature(
+  page: Page,
+  featureId: string
+): Promise<boolean> {
+  const card = page.locator(`[data-testid="kanban-card-${featureId}"]`);
+  const timer = card.locator('[data-testid="count-up-timer"]');
+  return await timer.isVisible().catch(() => false);
+}
+
+/**
+ * Set up a mock project with features that have startedAt timestamps
+ */
+export async function setupMockProjectWithInProgressFeatures(
+  page: Page,
+  options?: {
+    maxConcurrency?: number;
+    runningTasks?: string[];
+    features?: Array<{
+      id: string;
+      category: string;
+      description: string;
+      status: "backlog" | "in_progress" | "verified";
+      steps?: string[];
+      startedAt?: string;
+    }>;
+  }
+): Promise<void> {
+  await page.addInitScript(
+    (opts: typeof options) => {
+      const mockProject = {
+        id: "test-project-1",
+        name: "Test Project",
+        path: "/mock/test-project",
+        lastOpened: new Date().toISOString(),
+      };
+
+      const mockFeatures = opts?.features || [];
+
+      const mockState = {
+        state: {
+          projects: [mockProject],
+          currentProject: mockProject,
+          theme: "dark",
+          sidebarOpen: true,
+          apiKeys: { anthropic: "", google: "" },
+          chatSessions: [],
+          chatHistoryOpen: false,
+          maxConcurrency: opts?.maxConcurrency ?? 3,
+          isAutoModeRunning: false,
+          runningAutoTasks: opts?.runningTasks ?? [],
+          autoModeActivityLog: [],
+          features: mockFeatures,
+        },
+        version: 0,
+      };
+
+      localStorage.setItem("automaker-storage", JSON.stringify(mockState));
+    },
+    options
+  );
+}

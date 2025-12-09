@@ -152,6 +152,7 @@ export function BoardView() {
             ...f,
             id: f.id || `feature-${index}-${Date.now()}`,
             status: f.status || "backlog",
+            startedAt: f.startedAt, // Preserve startedAt timestamp
           })
         );
         setFeatures(featuresWithIds);
@@ -256,6 +257,7 @@ export function BoardView() {
         description: f.description,
         steps: f.steps,
         status: f.status,
+        startedAt: f.startedAt,
       }));
       await api.writeFile(
         `${currentProject.path}/.automaker/feature_list.json`,
@@ -325,13 +327,14 @@ export function BoardView() {
       return;
     }
 
-    // Move the feature
-    moveFeature(featureId, targetStatus);
-
-    // If moved to in_progress, trigger the agent
+    // Move the feature and set startedAt if moving to in_progress
     if (targetStatus === "in_progress") {
+      // Update with startedAt timestamp
+      updateFeature(featureId, { status: targetStatus, startedAt: new Date().toISOString() });
       console.log("[Board] Feature moved to in_progress, starting agent...");
       await handleRunFeature(draggedFeature);
+    } else {
+      moveFeature(featureId, targetStatus);
     }
   };
 
@@ -358,8 +361,34 @@ export function BoardView() {
     setEditingFeature(null);
   };
 
-  const handleDeleteFeature = (featureId: string) => {
-    if (window.confirm("Are you sure you want to delete this feature?")) {
+  const handleDeleteFeature = async (featureId: string) => {
+    const feature = features.find((f) => f.id === featureId);
+    if (!feature) return;
+
+    // Check if the feature is currently running
+    const isRunning = runningAutoTasks.includes(featureId);
+
+    const confirmMessage = isRunning
+      ? "This feature has an agent running. Deleting it will stop the agent. Are you sure you want to delete this feature?"
+      : "Are you sure you want to delete this feature?";
+
+    if (window.confirm(confirmMessage)) {
+      // If the feature is running, stop the agent first
+      if (isRunning) {
+        try {
+          await autoMode.stopFeature(featureId);
+          toast.success("Agent stopped", {
+            description: `Stopped and deleted: ${feature.description.slice(0, 50)}${feature.description.length > 50 ? "..." : ""}`,
+          });
+        } catch (error) {
+          console.error("[Board] Error stopping feature before delete:", error);
+          toast.error("Failed to stop agent", {
+            description: "The feature will still be deleted.",
+          });
+        }
+      }
+
+      // Remove the feature
       removeFeature(featureId);
     }
   };

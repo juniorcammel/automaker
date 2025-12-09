@@ -30,7 +30,7 @@
     "category": "Kanban",
     "description": "when clicking a value in the typeahead, there is a bug where it does not close automatically, fix this",
     "steps": [],
-    "status": "in_progress"
+    "status": "verified"
   },
   {
     "id": "feature-1765260671085-7dgotl21h",
@@ -86,7 +86,7 @@
     "category": "Kanban",
     "description": "Ability to delete in progress cards which will auto stop their agents on delete",
     "steps": [],
-    "status": "in_progress"
+    "status": "verified"
   },
   {
     "id": "feature-1765262348401-hivjg6vuq",

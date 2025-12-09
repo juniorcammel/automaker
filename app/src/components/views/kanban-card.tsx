@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Feature } from "@/store/app-store";
 import { GripVertical, Edit, CheckCircle2, Circle, Loader2, Trash2, Eye, PlayCircle, RotateCcw, StopCircle } from "lucide-react";
+import { CountUpTimer } from "@/components/ui/count-up-timer";
 
 interface KanbanCardProps {
   feature: Feature;
@@ -60,9 +61,18 @@ export function KanbanCard({ feature, onEdit, onDelete, onViewOutput, onVerify, 
     >
       <CardHeader className="p-3 pb-2">
         {isCurrentAutoTask && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 bg-purple-500/20 border border-purple-500 rounded px-2 py-0.5">
+          <div className="absolute top-2 right-2 flex items-center gap-2 bg-purple-500/20 border border-purple-500 rounded px-2 py-0.5">
             <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
             <span className="text-xs text-purple-400 font-medium">Running...</span>
+            {feature.startedAt && (
+              <CountUpTimer startedAt={feature.startedAt} className="text-purple-400" />
+            )}
+          </div>
+        )}
+        {/* Show timer for in_progress cards that aren't currently running */}
+        {!isCurrentAutoTask && feature.status === "in_progress" && feature.startedAt && (
+          <div className="absolute top-2 right-2">
+            <CountUpTimer startedAt={feature.startedAt} className="text-yellow-500" />
           </div>
         )}
         <div className="flex items-start gap-2">
@@ -193,6 +203,18 @@ export function KanbanCard({ feature, onEdit, onDelete, onViewOutput, onVerify, 
                   Output
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                data-testid={`delete-inprogress-feature-${feature.id}`}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
             </>
           )}
           {!isCurrentAutoTask && feature.status !== "in_progress" && (
