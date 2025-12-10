@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useAppStore } from "@/store/app-store";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { Settings } from "lucide-react";
 import { useCliStatus } from "./settings-view/hooks/use-cli-status";
 import { useScrollTracking } from "./settings-view/hooks/use-scroll-tracking";
 import { NAV_ITEMS } from "./settings-view/config/navigation";
 import { KeyboardMapDialog } from "./settings-view/components/keyboard-map-dialog";
 import { DeleteProjectDialog } from "./settings-view/components/delete-project-dialog";
+import { SettingsNavigation } from "./settings-view/components/settings-navigation";
 import { ApiKeysSection } from "./settings-view/api-keys/api-keys-section";
 import { ClaudeCliStatus } from "./settings-view/cli-status/claude-cli-status";
 import { CodexCliStatus } from "./settings-view/cli-status/codex-cli-status";
@@ -91,36 +91,12 @@ export function SettingsView() {
       {/* Content Area with Sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sticky Side Navigation */}
-        <nav className="hidden lg:block w-48 shrink-0 border-r border-border bg-card/50 backdrop-blur-sm">
-          <div className="sticky top-0 p-4 space-y-1">
-            {NAV_ITEMS.filter(
-              (item) => item.id !== "danger" || currentProject
-            ).map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => scrollToSection(item.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left",
-                    isActive
-                      ? "bg-brand-500/10 text-brand-500 border border-brand-500/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "w-4 h-4 shrink-0",
-                      isActive ? "text-brand-500" : ""
-                    )}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
+        <SettingsNavigation
+          navItems={NAV_ITEMS}
+          activeSection={activeSection}
+          currentProject={currentProject}
+          onNavigate={scrollToSection}
+        />
 
         {/* Scrollable Content */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8">
