@@ -44,8 +44,8 @@ class McpServerFactory {
 
               // If agent tries to mark as verified but feature has skipTests=true, convert to waiting_approval
               let finalStatus = args.status;
-              // Convert 'todo' to 'backlog' for consistency
-              if (finalStatus === "todo") {
+              // Convert 'todo' to 'backlog' for consistency, but only for new features
+              if (!feature && finalStatus === "todo") {
                 finalStatus = "backlog";
               }
               if (feature && args.status === "verified" && feature.skipTests === true) {
