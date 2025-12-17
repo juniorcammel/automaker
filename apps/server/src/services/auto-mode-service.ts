@@ -1264,10 +1264,49 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     const featureDirForOutput = getFeatureDir(configProjectPath, featureId);
     const outputPath = path.join(featureDirForOutput, "agent-output.md");
 
+    // Incremental file writing state
+    let directoryCreated = false;
+    let writeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const WRITE_DEBOUNCE_MS = 500; // Batch writes every 500ms
+
+    // Helper to write current responseText to file
+    const writeToFile = async (): Promise<void> => {
+      try {
+        if (!directoryCreated) {
+          await fs.mkdir(path.dirname(outputPath), { recursive: true });
+          directoryCreated = true;
+        }
+        await fs.writeFile(outputPath, responseText);
+      } catch (error) {
+        // Log but don't crash - file write errors shouldn't stop execution
+        console.error(`[AutoMode] Failed to write agent output for ${featureId}:`, error);
+      }
+    };
+
+    // Debounced write - schedules a write after WRITE_DEBOUNCE_MS
+    const scheduleWrite = (): void => {
+      if (writeTimeout) {
+        clearTimeout(writeTimeout);
+      }
+      writeTimeout = setTimeout(() => {
+        writeToFile().catch((err) => {
+          console.error(`[AutoMode] Debounced write error:`, err);
+        });
+      }, WRITE_DEBOUNCE_MS);
+    };
+
     for await (const msg of stream) {
       if (msg.type === "assistant" && msg.message?.content) {
         for (const block of msg.message.content) {
           if (block.type === "text") {
+            // Add separator before new text if we already have content and it doesn't end with newlines
+            if (responseText.length > 0 && !responseText.endsWith('\n\n')) {
+              if (responseText.endsWith('\n')) {
+                responseText += '\n';
+              } else {
+                responseText += '\n\n';
+              }
+            }
             responseText += block.text || "";
 
             // Check for authentication errors in the response
@@ -1283,16 +1322,30 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
               );
             }
 
+            // Schedule incremental file write (debounced)
+            scheduleWrite();
+
             this.emitAutoModeEvent("auto_mode_progress", {
               featureId,
               content: block.text,
             });
           } else if (block.type === "tool_use") {
+            // Emit event for real-time UI
             this.emitAutoModeEvent("auto_mode_tool", {
               featureId,
               tool: block.name,
               input: block.input,
             });
+
+            // Also add to file output for persistence
+            if (responseText.length > 0 && !responseText.endsWith('\n')) {
+              responseText += '\n';
+            }
+            responseText += `\n🔧 Tool: ${block.name}\n`;
+            if (block.input) {
+              responseText += `Input: ${JSON.stringify(block.input, null, 2)}\n`;
+            }
+            scheduleWrite();
           }
         }
       } else if (msg.type === "error") {
@@ -1300,16 +1353,17 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
         throw new Error(msg.error || "Unknown error");
       } else if (msg.type === "result" && msg.subtype === "success") {
         responseText = msg.result || responseText;
+        // Schedule write for final result
+        scheduleWrite();
       }
     }
 
-    // Save agent output
-    try {
-      await fs.mkdir(path.dirname(outputPath), { recursive: true });
-      await fs.writeFile(outputPath, responseText);
-    } catch {
-      // May fail if directory doesn't exist
+    // Clear any pending timeout and do a final write to ensure all content is saved
+    if (writeTimeout) {
+      clearTimeout(writeTimeout);
     }
+    // Final write - ensure all accumulated content is saved
+    await writeToFile();
   }
 
   private async executeFeatureWithContext(

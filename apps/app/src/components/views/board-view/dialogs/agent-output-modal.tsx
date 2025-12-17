@@ -99,24 +99,6 @@ export function AgentOutputModal({
     loadOutput();
   }, [open, featureId]);
 
-  // Save output to file
-  const saveOutput = async (newContent: string) => {
-    if (!projectPathRef.current) return;
-
-    const api = getElectronAPI();
-    if (!api) return;
-
-    try {
-      // Use features API - agent output is stored in features/{id}/agent-output.md
-      // We need to write it directly since there's no updateAgentOutput method
-      // The context-manager handles this on the backend, but for frontend edits we write directly
-      const outputPath = `${projectPathRef.current}/.automaker/features/${featureId}/agent-output.md`;
-      await api.writeFile(outputPath, newContent);
-    } catch (error) {
-      console.error("Failed to save output:", error);
-    }
-  };
-
   // Listen to auto mode events and update output
   useEffect(() => {
     if (!open) return;
@@ -142,7 +124,7 @@ export function AgentOutputModal({
             ? JSON.stringify(event.input, null, 2)
             : "";
           newContent = `\n🔧 Tool: ${toolName}\n${
-            toolInput ? `Input: ${toolInput}` : ""
+            toolInput ? `Input: ${toolInput}\n` : ""
           }`;
           break;
         case "auto_mode_phase":
@@ -202,11 +184,8 @@ export function AgentOutputModal({
       }
 
       if (newContent) {
-        setOutput((prev) => {
-          const updated = prev + newContent;
-          saveOutput(updated);
-          return updated;
-        });
+        // Only update local state - server is the single source of truth for file writes
+        setOutput((prev) => prev + newContent);
       }
     });
 
