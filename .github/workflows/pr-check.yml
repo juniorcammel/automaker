@@ -42,7 +42,7 @@ jobs:
         # Workaround for npm optional dependencies bug (npm/cli#4828)
         # Explicitly install Linux bindings needed for build tools
         run: |
-          npm install --no-save --force \
+          npm install --no-save --force --ignore-scripts \
             @rollup/rollup-linux-x64-gnu@4.53.3 \
             @tailwindcss/oxide-linux-x64-gnu@4.1.17
 
