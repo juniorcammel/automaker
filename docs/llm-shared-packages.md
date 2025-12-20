@@ -343,13 +343,8 @@ Understanding the dependency chain helps prevent circular dependencies:
 All packages must be built before use:
 
 ```bash
-# Build all packages
-cd libs/types && npm run build
-cd libs/utils && npm run build
-cd libs/platform && npm run build
-cd libs/model-resolver && npm run build
-cd libs/dependency-resolver && npm run build
-cd libs/git-utils && npm run build
+# Build all packages from workspace
+npm run build:packages
 
 # Or from root
 npm install  # Installs and links workspace packages
