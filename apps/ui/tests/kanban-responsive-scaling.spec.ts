@@ -5,8 +5,8 @@
  * the available window space without dead space or content being cut off.
  */
 
-import { test, expect } from "@playwright/test";
-import * as fs from "fs";
+import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
 
 import {
   waitForNetworkIdle,
@@ -15,17 +15,17 @@ import {
   createTempDirPath,
   setupProjectWithPathNoWorktrees,
   waitForBoardView,
-} from "./utils";
+} from './utils';
 
 // Create unique temp dir for this test run
-const TEST_TEMP_DIR = createTempDirPath("kanban-responsive-tests");
+const TEST_TEMP_DIR = createTempDirPath('kanban-responsive-tests');
 
 interface TestRepo {
   path: string;
   cleanup: () => Promise<void>;
 }
 
-test.describe("Kanban Responsive Scaling Tests", () => {
+test.describe('Kanban Responsive Scaling Tests', () => {
   let testRepo: TestRepo;
 
   test.beforeAll(async () => {
@@ -52,12 +52,12 @@ test.describe("Kanban Responsive Scaling Tests", () => {
     cleanupTempDir(TEST_TEMP_DIR);
   });
 
-  test("kanban columns should scale to fill available width at different viewport sizes", async ({
+  test('kanban columns should scale to fill available width at different viewport sizes', async ({
     page,
   }) => {
     // Setup project and navigate to board view
     await setupProjectWithPathNoWorktrees(page, testRepo.path);
-    await page.goto("/");
+    await page.goto('/');
     await waitForNetworkIdle(page);
     await waitForBoardView(page);
 
@@ -122,12 +122,10 @@ test.describe("Kanban Responsive Scaling Tests", () => {
     }
   });
 
-  test("kanban columns should be centered in the viewport", async ({
-    page,
-  }) => {
+  test('kanban columns should be centered in the viewport', async ({ page }) => {
     // Setup project and navigate to board view
     await setupProjectWithPathNoWorktrees(page, testRepo.path);
-    await page.goto("/");
+    await page.goto('/');
     await waitForNetworkIdle(page);
     await waitForBoardView(page);
 
@@ -181,12 +179,12 @@ test.describe("Kanban Responsive Scaling Tests", () => {
     }
   });
 
-  test("kanban columns should have no horizontal scrollbar at standard viewport width", async ({
+  test('kanban columns should have no horizontal scrollbar at standard viewport width', async ({
     page,
   }) => {
     // Setup project and navigate to board view
     await setupProjectWithPathNoWorktrees(page, testRepo.path);
-    await page.goto("/");
+    await page.goto('/');
     await waitForNetworkIdle(page);
     await waitForBoardView(page);
 

@@ -1,7 +1,7 @@
-import { spawn } from "child_process";
-import * as os from "os";
-import * as pty from "node-pty";
-import { ClaudeUsage } from "../routes/claude/types.js";
+import { spawn } from 'child_process';
+import * as os from 'os';
+import * as pty from 'node-pty';
+import { ClaudeUsage } from '../routes/claude/types.js';
 
 /**
  * Claude Usage Service
@@ -15,21 +15,21 @@ import { ClaudeUsage } from "../routes/claude/types.js";
  * - Windows: Uses node-pty for PTY
  */
 export class ClaudeUsageService {
-  private claudeBinary = "claude";
+  private claudeBinary = 'claude';
   private timeout = 30000; // 30 second timeout
-  private isWindows = os.platform() === "win32";
+  private isWindows = os.platform() === 'win32';
 
   /**
    * Check if Claude CLI is available on the system
    */
   async isAvailable(): Promise<boolean> {
     return new Promise((resolve) => {
-      const checkCmd = this.isWindows ? "where" : "which";
+      const checkCmd = this.isWindows ? 'where' : 'which';
       const proc = spawn(checkCmd, [this.claudeBinary]);
-      proc.on("close", (code) => {
+      proc.on('close', (code) => {
         resolve(code === 0);
       });
-      proc.on("error", () => {
+      proc.on('error', () => {
         resolve(false);
       });
     });
@@ -59,12 +59,12 @@ export class ClaudeUsageService {
    */
   private executeClaudeUsageCommandMac(): Promise<string> {
     return new Promise((resolve, reject) => {
-      let stdout = "";
-      let stderr = "";
+      let stdout = '';
+      let stderr = '';
       let settled = false;
 
       // Use a simple working directory (home or tmp)
-      const workingDirectory = process.env.HOME || "/tmp";
+      const workingDirectory = process.env.HOME || '/tmp';
 
       // Use 'expect' with an inline script to run claude /usage with a PTY
       // Wait for "Current session" header, then wait for full output before exiting
@@ -86,11 +86,11 @@ export class ClaudeUsageService {
         expect eof
       `;
 
-      const proc = spawn("expect", ["-c", expectScript], {
+      const proc = spawn('expect', ['-c', expectScript], {
         cwd: workingDirectory,
         env: {
           ...process.env,
-          TERM: "xterm-256color",
+          TERM: 'xterm-256color',
         },
       });
 
@@ -98,26 +98,30 @@ export class ClaudeUsageService {
         if (!settled) {
           settled = true;
           proc.kill();
-          reject(new Error("Command timed out"));
+          reject(new Error('Command timed out'));
         }
       }, this.timeout);
 
-      proc.stdout.on("data", (data) => {
+      proc.stdout.on('data', (data) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on("data", (data) => {
+      proc.stderr.on('data', (data) => {
         stderr += data.toString();
       });
 
-      proc.on("close", (code) => {
+      proc.on('close', (code) => {
         clearTimeout(timeoutId);
         if (settled) return;
         settled = true;
 
         // Check for authentication errors in output
-        if (stdout.includes("token_expired") || stdout.includes("authentication_error") ||
-            stderr.includes("token_expired") || stderr.includes("authentication_error")) {
+        if (
+          stdout.includes('token_expired') ||
+          stdout.includes('authentication_error') ||
+          stderr.includes('token_expired') ||
+          stderr.includes('authentication_error')
+        ) {
           reject(new Error("Authentication required - please run 'claude login'"));
           return;
         }
@@ -128,11 +132,11 @@ export class ClaudeUsageService {
         } else if (code !== 0) {
           reject(new Error(stderr || `Command exited with code ${code}`));
         } else {
-          reject(new Error("No output from claude command"));
+          reject(new Error('No output from claude command'));
         }
       });
 
-      proc.on("error", (err) => {
+      proc.on('error', (err) => {
         clearTimeout(timeoutId);
         if (!settled) {
           settled = true;
@@ -147,20 +151,20 @@ export class ClaudeUsageService {
    */
   private executeClaudeUsageCommandWindows(): Promise<string> {
     return new Promise((resolve, reject) => {
-      let output = "";
+      let output = '';
       let settled = false;
       let hasSeenUsageData = false;
 
-      const workingDirectory = process.env.USERPROFILE || os.homedir() || "C:\\";
+      const workingDirectory = process.env.USERPROFILE || os.homedir() || 'C:\\';
 
-      const ptyProcess = pty.spawn("cmd.exe", ["/c", "claude", "/usage"], {
-        name: "xterm-256color",
+      const ptyProcess = pty.spawn('cmd.exe', ['/c', 'claude', '/usage'], {
+        name: 'xterm-256color',
         cols: 120,
         rows: 30,
         cwd: workingDirectory,
         env: {
           ...process.env,
-          TERM: "xterm-256color",
+          TERM: 'xterm-256color',
         } as Record<string, string>,
       });
 
@@ -168,7 +172,7 @@ export class ClaudeUsageService {
         if (!settled) {
           settled = true;
           ptyProcess.kill();
-          reject(new Error("Command timed out"));
+          reject(new Error('Command timed out'));
         }
       }, this.timeout);
 
@@ -176,21 +180,21 @@ export class ClaudeUsageService {
         output += data;
 
         // Check if we've seen the usage data (look for "Current session")
-        if (!hasSeenUsageData && output.includes("Current session")) {
+        if (!hasSeenUsageData && output.includes('Current session')) {
           hasSeenUsageData = true;
           // Wait for full output, then send escape to exit
           setTimeout(() => {
             if (!settled) {
-              ptyProcess.write("\x1b"); // Send escape key
+              ptyProcess.write('\x1b'); // Send escape key
             }
           }, 2000);
         }
 
         // Fallback: if we see "Esc to cancel" but haven't seen usage data yet
-        if (!hasSeenUsageData && output.includes("Esc to cancel")) {
+        if (!hasSeenUsageData && output.includes('Esc to cancel')) {
           setTimeout(() => {
             if (!settled) {
-              ptyProcess.write("\x1b"); // Send escape key
+              ptyProcess.write('\x1b'); // Send escape key
             }
           }, 3000);
         }
@@ -202,7 +206,7 @@ export class ClaudeUsageService {
         settled = true;
 
         // Check for authentication errors in output
-        if (output.includes("token_expired") || output.includes("authentication_error")) {
+        if (output.includes('token_expired') || output.includes('authentication_error')) {
           reject(new Error("Authentication required - please run 'claude login'"));
           return;
         }
@@ -212,7 +216,7 @@ export class ClaudeUsageService {
         } else if (exitCode !== 0) {
           reject(new Error(`Command exited with code ${exitCode}`));
         } else {
-          reject(new Error("No output from claude command"));
+          reject(new Error('No output from claude command'));
         }
       });
     });
@@ -223,7 +227,7 @@ export class ClaudeUsageService {
    */
   private stripAnsiCodes(text: string): string {
     // eslint-disable-next-line no-control-regex
-    return text.replace(/\x1B\[[0-9;]*[A-Za-z]/g, "");
+    return text.replace(/\x1B\[[0-9;]*[A-Za-z]/g, '');
   }
 
   /**
@@ -248,21 +252,24 @@ export class ClaudeUsageService {
    */
   private parseUsageOutput(rawOutput: string): ClaudeUsage {
     const output = this.stripAnsiCodes(rawOutput);
-    const lines = output.split("\n").map(l => l.trim()).filter(l => l);
+    const lines = output
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l);
 
     // Parse session usage
-    const sessionData = this.parseSection(lines, "Current session", "session");
+    const sessionData = this.parseSection(lines, 'Current session', 'session');
 
     // Parse weekly usage (all models)
-    const weeklyData = this.parseSection(lines, "Current week (all models)", "weekly");
+    const weeklyData = this.parseSection(lines, 'Current week (all models)', 'weekly');
 
     // Parse Sonnet/Opus usage - try different labels
-    let sonnetData = this.parseSection(lines, "Current week (Sonnet only)", "sonnet");
+    let sonnetData = this.parseSection(lines, 'Current week (Sonnet only)', 'sonnet');
     if (sonnetData.percentage === 0) {
-      sonnetData = this.parseSection(lines, "Current week (Sonnet)", "sonnet");
+      sonnetData = this.parseSection(lines, 'Current week (Sonnet)', 'sonnet');
     }
     if (sonnetData.percentage === 0) {
-      sonnetData = this.parseSection(lines, "Current week (Opus)", "sonnet");
+      sonnetData = this.parseSection(lines, 'Current week (Opus)', 'sonnet');
     }
 
     return {
@@ -294,10 +301,14 @@ export class ClaudeUsageService {
   /**
    * Parse a section of the usage output to extract percentage and reset time
    */
-  private parseSection(lines: string[], sectionLabel: string, type: string): { percentage: number; resetTime: string; resetText: string } {
+  private parseSection(
+    lines: string[],
+    sectionLabel: string,
+    type: string
+  ): { percentage: number; resetTime: string; resetText: string } {
     let percentage = 0;
     let resetTime = this.getDefaultResetTime(type);
-    let resetText = "";
+    let resetText = '';
 
     // Find the LAST occurrence of the section (terminal output has multiple screen refreshes)
     let sectionIndex = -1;
@@ -321,14 +332,14 @@ export class ClaudeUsageService {
         const percentMatch = line.match(/(\d{1,3})\s*%\s*(left|used|remaining)/i);
         if (percentMatch) {
           const value = parseInt(percentMatch[1], 10);
-          const isUsed = percentMatch[2].toLowerCase() === "used";
+          const isUsed = percentMatch[2].toLowerCase() === 'used';
           // Convert "left" to "used" percentage (our UI shows % used)
-          percentage = isUsed ? value : (100 - value);
+          percentage = isUsed ? value : 100 - value;
         }
       }
 
       // Extract reset time - only take the first match
-      if (!resetText && line.toLowerCase().includes("reset")) {
+      if (!resetText && line.toLowerCase().includes('reset')) {
         resetText = line;
       }
     }
@@ -337,7 +348,7 @@ export class ClaudeUsageService {
     if (resetText) {
       resetTime = this.parseResetTime(resetText, type);
       // Strip timezone like "(Asia/Dubai)" from the display text
-      resetText = resetText.replace(/\s*\([A-Za-z_\/]+\)\s*$/, "").trim();
+      resetText = resetText.replace(/\s*\([A-Za-z_\/]+\)\s*$/, '').trim();
     }
 
     return { percentage, resetTime, resetText };
@@ -350,7 +361,9 @@ export class ClaudeUsageService {
     const now = new Date();
 
     // Try to parse duration format: "Resets in 2h 15m" or "Resets in 30m"
-    const durationMatch = text.match(/(\d+)\s*h(?:ours?)?(?:\s+(\d+)\s*m(?:in)?)?|(\d+)\s*m(?:in)?/i);
+    const durationMatch = text.match(
+      /(\d+)\s*h(?:ours?)?(?:\s+(\d+)\s*m(?:in)?)?|(\d+)\s*m(?:in)?/i
+    );
     if (durationMatch) {
       let hours = 0;
       let minutes = 0;
@@ -374,9 +387,9 @@ export class ClaudeUsageService {
       const ampm = simpleTimeMatch[3].toLowerCase();
 
       // Convert 12-hour to 24-hour
-      if (ampm === "pm" && hours !== 12) {
+      if (ampm === 'pm' && hours !== 12) {
         hours += 12;
-      } else if (ampm === "am" && hours === 12) {
+      } else if (ampm === 'am' && hours === 12) {
         hours = 0;
       }
 
@@ -392,7 +405,9 @@ export class ClaudeUsageService {
     }
 
     // Try to parse date format: "Resets Dec 22 at 8pm" or "Resets Jan 15, 3:30pm"
-    const dateMatch = text.match(/([A-Za-z]{3,})\s+(\d{1,2})(?:\s+at\s+|\s*,?\s*)(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+    const dateMatch = text.match(
+      /([A-Za-z]{3,})\s+(\d{1,2})(?:\s+at\s+|\s*,?\s*)(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i
+    );
     if (dateMatch) {
       const monthName = dateMatch[1];
       const day = parseInt(dateMatch[2], 10);
@@ -401,16 +416,26 @@ export class ClaudeUsageService {
       const ampm = dateMatch[5].toLowerCase();
 
       // Convert 12-hour to 24-hour
-      if (ampm === "pm" && hours !== 12) {
+      if (ampm === 'pm' && hours !== 12) {
         hours += 12;
-      } else if (ampm === "am" && hours === 12) {
+      } else if (ampm === 'am' && hours === 12) {
         hours = 0;
       }
 
       // Parse month name
       const months: Record<string, number> = {
-        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+        jan: 0,
+        feb: 1,
+        mar: 2,
+        apr: 3,
+        may: 4,
+        jun: 5,
+        jul: 6,
+        aug: 7,
+        sep: 8,
+        oct: 9,
+        nov: 10,
+        dec: 11,
       };
       const month = months[monthName.toLowerCase().substring(0, 3)];
 
@@ -435,7 +460,7 @@ export class ClaudeUsageService {
   private getDefaultResetTime(type: string): string {
     const now = new Date();
 
-    if (type === "session") {
+    if (type === 'session') {
       // Session resets in ~5 hours
       return new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
     } else {

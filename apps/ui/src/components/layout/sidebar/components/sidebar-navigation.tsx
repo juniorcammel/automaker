@@ -40,9 +40,7 @@ export function SidebarNavigation({
                 </span>
               </div>
             )}
-            {section.label && !sidebarOpen && (
-              <div className="h-px bg-border/30 mx-2 my-1.5"></div>
-            )}
+            {section.label && !sidebarOpen && <div className="h-px bg-border/30 mx-2 my-1.5"></div>}
 
             {/* Nav Items */}
             <div className="space-y-1.5">

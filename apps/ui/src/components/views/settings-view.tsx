@@ -1,27 +1,24 @@
+import { useState } from 'react';
+import { useAppStore } from '@/store/app-store';
 
-import { useState } from "react";
-import { useAppStore } from "@/store/app-store";
-
-import { useCliStatus, useSettingsView } from "./settings-view/hooks";
-import { NAV_ITEMS } from "./settings-view/config/navigation";
-import { SettingsHeader } from "./settings-view/components/settings-header";
-import { KeyboardMapDialog } from "./settings-view/components/keyboard-map-dialog";
-import { DeleteProjectDialog } from "./settings-view/components/delete-project-dialog";
-import { SettingsNavigation } from "./settings-view/components/settings-navigation";
-import { ApiKeysSection } from "./settings-view/api-keys/api-keys-section";
-import { ClaudeUsageSection } from "./settings-view/api-keys/claude-usage-section";
-import { ClaudeCliStatus } from "./settings-view/cli-status/claude-cli-status";
-import { AIEnhancementSection } from "./settings-view/ai-enhancement";
-import { AppearanceSection } from "./settings-view/appearance/appearance-section";
-import { AudioSection } from "./settings-view/audio/audio-section";
-import { KeyboardShortcutsSection } from "./settings-view/keyboard-shortcuts/keyboard-shortcuts-section";
-import { FeatureDefaultsSection } from "./settings-view/feature-defaults/feature-defaults-section";
-import { DangerZoneSection } from "./settings-view/danger-zone/danger-zone-section";
-import type {
-  Project as SettingsProject,
-  Theme,
-} from "./settings-view/shared/types";
-import type { Project as ElectronProject } from "@/lib/electron";
+import { useCliStatus, useSettingsView } from './settings-view/hooks';
+import { NAV_ITEMS } from './settings-view/config/navigation';
+import { SettingsHeader } from './settings-view/components/settings-header';
+import { KeyboardMapDialog } from './settings-view/components/keyboard-map-dialog';
+import { DeleteProjectDialog } from './settings-view/components/delete-project-dialog';
+import { SettingsNavigation } from './settings-view/components/settings-navigation';
+import { ApiKeysSection } from './settings-view/api-keys/api-keys-section';
+import { ClaudeUsageSection } from './settings-view/api-keys/claude-usage-section';
+import { ClaudeCliStatus } from './settings-view/cli-status/claude-cli-status';
+import { AIEnhancementSection } from './settings-view/ai-enhancement';
+import { AppearanceSection } from './settings-view/appearance/appearance-section';
+import { TerminalSection } from './settings-view/terminal/terminal-section';
+import { AudioSection } from './settings-view/audio/audio-section';
+import { KeyboardShortcutsSection } from './settings-view/keyboard-shortcuts/keyboard-shortcuts-section';
+import { FeatureDefaultsSection } from './settings-view/feature-defaults/feature-defaults-section';
+import { DangerZoneSection } from './settings-view/danger-zone/danger-zone-section';
+import type { Project as SettingsProject, Theme } from './settings-view/shared/types';
+import type { Project as ElectronProject } from '@/lib/electron';
 
 export function SettingsView() {
   const {
@@ -52,13 +49,12 @@ export function SettingsView() {
 
   // Hide usage tracking when using API key (only show for Claude Code CLI users)
   // Also hide on Windows for now (CLI usage command not supported)
-  const isWindows = typeof navigator !== 'undefined' && navigator.platform?.toLowerCase().includes('win');
+  const isWindows =
+    typeof navigator !== 'undefined' && navigator.platform?.toLowerCase().includes('win');
   const showUsageTracking = !apiKeys.anthropic && !isWindows;
 
   // Convert electron Project to settings-view Project type
-  const convertProject = (
-    project: ElectronProject | null
-  ): SettingsProject | null => {
+  const convertProject = (project: ElectronProject | null): SettingsProject | null => {
     if (!project) return null;
     return {
       id: project.id,
@@ -85,8 +81,7 @@ export function SettingsView() {
   };
 
   // Use CLI status hook
-  const { claudeCliStatus, isCheckingClaudeCli, handleRefreshClaudeCli } =
-    useCliStatus();
+  const { claudeCliStatus, isCheckingClaudeCli, handleRefreshClaudeCli } = useCliStatus();
 
   // Use settings view navigation hook
   const { activeView, navigateTo } = useSettingsView();
@@ -97,7 +92,7 @@ export function SettingsView() {
   // Render the active section based on current view
   const renderActiveSection = () => {
     switch (activeView) {
-      case "claude":
+      case 'claude':
         return (
           <div className="space-y-6">
             <ClaudeCliStatus
@@ -108,9 +103,9 @@ export function SettingsView() {
             {showUsageTracking && <ClaudeUsageSection />}
           </div>
         );
-      case "ai-enhancement":
+      case 'ai-enhancement':
         return <AIEnhancementSection />;
-      case "appearance":
+      case 'appearance':
         return (
           <AppearanceSection
             effectiveTheme={effectiveTheme}
@@ -118,20 +113,17 @@ export function SettingsView() {
             onThemeChange={handleSetTheme}
           />
         );
-      case "keyboard":
+      case 'terminal':
+        return <TerminalSection />;
+      case 'keyboard':
         return (
-          <KeyboardShortcutsSection
-            onOpenKeyboardMap={() => setShowKeyboardMapDialog(true)}
-          />
+          <KeyboardShortcutsSection onOpenKeyboardMap={() => setShowKeyboardMapDialog(true)} />
         );
-      case "audio":
+      case 'audio':
         return (
-          <AudioSection
-            muteDoneSound={muteDoneSound}
-            onMuteDoneSoundChange={setMuteDoneSound}
-          />
+          <AudioSection muteDoneSound={muteDoneSound} onMuteDoneSoundChange={setMuteDoneSound} />
         );
-      case "defaults":
+      case 'defaults':
         return (
           <FeatureDefaultsSection
             showProfilesOnly={showProfilesOnly}
@@ -151,7 +143,7 @@ export function SettingsView() {
             onDefaultAIProfileIdChange={setDefaultAIProfileId}
           />
         );
-      case "danger":
+      case 'danger':
         return (
           <DangerZoneSection
             project={settingsProject}
@@ -164,10 +156,7 @@ export function SettingsView() {
   };
 
   return (
-    <div
-      className="flex-1 flex flex-col overflow-hidden content-bg"
-      data-testid="settings-view"
-    >
+    <div className="flex-1 flex flex-col overflow-hidden content-bg" data-testid="settings-view">
       {/* Header Section */}
       <SettingsHeader />
 
@@ -188,10 +177,7 @@ export function SettingsView() {
       </div>
 
       {/* Keyboard Map Dialog */}
-      <KeyboardMapDialog
-        open={showKeyboardMapDialog}
-        onOpenChange={setShowKeyboardMapDialog}
-      />
+      <KeyboardMapDialog open={showKeyboardMapDialog} onOpenChange={setShowKeyboardMapDialog} />
 
       {/* Delete Project Confirmation Dialog */}
       <DeleteProjectDialog

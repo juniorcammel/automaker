@@ -30,6 +30,25 @@ export type ViewMode =
   | 'terminal'
   | 'wiki';
 
+export type ThemeMode =
+  | 'light'
+  | 'dark'
+  | 'system'
+  | 'retro'
+  | 'dracula'
+  | 'nord'
+  | 'monokai'
+  | 'tokyonight'
+  | 'solarized'
+  | 'gruvbox'
+  | 'catppuccin'
+  | 'onedark'
+  | 'synthwave'
+  | 'red'
+  | 'cream'
+  | 'sunset'
+  | 'gray';
+
 export type KanbanCardDetailLevel = 'minimal' | 'standard' | 'detailed';
 
 export interface ApiKeys {
@@ -151,6 +170,7 @@ export interface KeyboardShortcuts {
   splitTerminalRight: string;
   splitTerminalDown: string;
   closeTerminal: string;
+  newTerminalTab: string;
 }
 
 // Default keyboard shortcuts
@@ -185,6 +205,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   splitTerminalRight: 'Alt+D',
   splitTerminalDown: 'Alt+S',
   closeTerminal: 'Alt+W',
+  newTerminalTab: 'Alt+T',
 };
 
 export interface ImageAttachment {
@@ -242,8 +263,12 @@ export interface FeatureImage {
   size: number;
 }
 
-// Available models for feature execution (alias for consistency)
-export type ClaudeModel = AgentModel;
+export interface FeatureImagePath {
+  id: string;
+  path: string; // Path to the temp file
+  filename: string;
+  mimeType: string;
+}
 
 // UI-specific Feature extension with UI-only fields and stricter types
 export interface Feature extends Omit<
@@ -305,6 +330,7 @@ export type TerminalPanelContent =
   | { type: 'terminal'; sessionId: string; size?: number; fontSize?: number }
   | {
       type: 'split';
+      id: string; // Stable ID for React key stability
       direction: 'horizontal' | 'vertical';
       panels: TerminalPanelContent[];
       size?: number;
@@ -323,7 +349,57 @@ export interface TerminalState {
   tabs: TerminalTab[];
   activeTabId: string | null;
   activeSessionId: string | null;
+  maximizedSessionId: string | null; // Session ID of the maximized terminal pane (null if none)
   defaultFontSize: number; // Default font size for new terminals
+  defaultRunScript: string; // Script to run when a new terminal is created (e.g., "claude" to start Claude Code)
+  screenReaderMode: boolean; // Enable screen reader accessibility mode
+  fontFamily: string; // Font family for terminal text
+  scrollbackLines: number; // Number of lines to keep in scrollback buffer
+  lineHeight: number; // Line height multiplier for terminal text
+  maxSessions: number; // Maximum concurrent terminal sessions (server setting)
+}
+
+// Persisted terminal layout - now includes sessionIds for reconnection
+// Used to restore terminal layout structure when switching projects
+export type PersistedTerminalPanel =
+  | { type: 'terminal'; size?: number; fontSize?: number; sessionId?: string }
+  | {
+      type: 'split';
+      id?: string; // Optional for backwards compatibility with older persisted layouts
+      direction: 'horizontal' | 'vertical';
+      panels: PersistedTerminalPanel[];
+      size?: number;
+    };
+
+// Helper to generate unique split IDs
+const generateSplitId = () => `split-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+export interface PersistedTerminalTab {
+  id: string;
+  name: string;
+  layout: PersistedTerminalPanel | null;
+}
+
+export interface PersistedTerminalState {
+  tabs: PersistedTerminalTab[];
+  activeTabIndex: number; // Use index instead of ID since IDs are regenerated
+  defaultFontSize: number;
+  defaultRunScript?: string; // Optional to support existing persisted data
+  screenReaderMode?: boolean; // Optional to support existing persisted data
+  fontFamily?: string; // Optional to support existing persisted data
+  scrollbackLines?: number; // Optional to support existing persisted data
+  lineHeight?: number; // Optional to support existing persisted data
+}
+
+// Persisted terminal settings - stored globally (not per-project)
+export interface PersistedTerminalSettings {
+  defaultFontSize: number;
+  defaultRunScript: string;
+  screenReaderMode: boolean;
+  fontFamily: string;
+  scrollbackLines: number;
+  lineHeight: number;
+  maxSessions: number;
 }
 
 export interface AppState {
@@ -436,6 +512,10 @@ export interface AppState {
 
   // Terminal state
   terminalState: TerminalState;
+
+  // Terminal layout persistence (per-project, keyed by project path)
+  // Stores the tab/split structure so it can be restored when switching projects
+  terminalLayoutByProject: Record<string, PersistedTerminalState>;
 
   // Spec Creation State (per-project, keyed by project path)
   // Tracks which project is currently having its spec generated
@@ -716,6 +796,7 @@ export interface AppActions {
   // Terminal actions
   setTerminalUnlocked: (unlocked: boolean, token?: string) => void;
   setActiveTerminalSession: (sessionId: string | null) => void;
+  toggleTerminalMaximized: (sessionId: string) => void;
   addTerminalToLayout: (
     sessionId: string,
     direction?: 'horizontal' | 'vertical',
@@ -725,16 +806,33 @@ export interface AppActions {
   swapTerminals: (sessionId1: string, sessionId2: string) => void;
   clearTerminalState: () => void;
   setTerminalPanelFontSize: (sessionId: string, fontSize: number) => void;
+  setTerminalDefaultFontSize: (fontSize: number) => void;
+  setTerminalDefaultRunScript: (script: string) => void;
+  setTerminalScreenReaderMode: (enabled: boolean) => void;
+  setTerminalFontFamily: (fontFamily: string) => void;
+  setTerminalScrollbackLines: (lines: number) => void;
+  setTerminalLineHeight: (lineHeight: number) => void;
+  setTerminalMaxSessions: (maxSessions: number) => void;
   addTerminalTab: (name?: string) => string;
   removeTerminalTab: (tabId: string) => void;
   setActiveTerminalTab: (tabId: string) => void;
   renameTerminalTab: (tabId: string, name: string) => void;
+  reorderTerminalTabs: (fromTabId: string, toTabId: string) => void;
   moveTerminalToTab: (sessionId: string, targetTabId: string | 'new') => void;
   addTerminalToTab: (
     sessionId: string,
     tabId: string,
     direction?: 'horizontal' | 'vertical'
   ) => void;
+  setTerminalTabLayout: (
+    tabId: string,
+    layout: TerminalPanelContent,
+    activeSessionId?: string
+  ) => void;
+  updateTerminalPanelSizes: (tabId: string, panelKeys: string[], sizes: number[]) => void;
+  saveTerminalLayout: (projectPath: string) => void;
+  getPersistedTerminalLayout: (projectPath: string) => PersistedTerminalState | null;
+  clearPersistedTerminalLayout: (projectPath: string) => void;
 
   // Spec Creation actions
   setSpecCreatingForProject: (projectPath: string | null) => void;
@@ -753,11 +851,6 @@ export interface AppActions {
       planningMode: 'lite' | 'spec' | 'full';
     } | null
   ) => void;
-
-  // Claude Usage Tracking actions
-  setClaudeRefreshInterval: (interval: number) => void;
-  setClaudeUsageLastUpdated: (timestamp: number) => void;
-  setClaudeUsage: (usage: ClaudeUsage | null) => void;
 
   // Reset
   reset: () => void;
@@ -843,16 +936,21 @@ const initialState: AppState = {
     tabs: [],
     activeTabId: null,
     activeSessionId: null,
+    maximizedSessionId: null,
     defaultFontSize: 14,
+    defaultRunScript: '',
+    screenReaderMode: false,
+    fontFamily: "Menlo, Monaco, 'Courier New', monospace",
+    scrollbackLines: 5000,
+    lineHeight: 1.0,
+    maxSessions: 100,
   },
+  terminalLayoutByProject: {},
   specCreatingForProject: null,
   defaultPlanningMode: 'skip' as PlanningMode,
   defaultRequirePlanApproval: false,
   defaultAIProfileId: null,
   pendingPlanApproval: null,
-  claudeRefreshInterval: 60,
-  claudeUsage: null,
-  claudeUsageLastUpdated: null,
 };
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -1680,6 +1778,19 @@ export const useAppStore = create<AppState & AppActions>()(
         });
       },
 
+      toggleTerminalMaximized: (sessionId) => {
+        const current = get().terminalState;
+        const newMaximized = current.maximizedSessionId === sessionId ? null : sessionId;
+        set({
+          terminalState: {
+            ...current,
+            maximizedSessionId: newMaximized,
+            // Also set as active when maximizing
+            activeSessionId: newMaximized ?? current.activeSessionId,
+          },
+        });
+      },
+
       addTerminalToLayout: (sessionId, direction = 'horizontal', targetSessionId) => {
         const current = get().terminalState;
         const newTerminal: TerminalPanelContent = {
@@ -1723,6 +1834,7 @@ export const useAppStore = create<AppState & AppActions>()(
               // Found the target - split it
               return {
                 type: 'split',
+                id: generateSplitId(),
                 direction: targetDirection,
                 panels: [{ ...node, size: 50 }, newTerminal],
               };
@@ -1745,6 +1857,7 @@ export const useAppStore = create<AppState & AppActions>()(
           if (node.type === 'terminal') {
             return {
               type: 'split',
+              id: generateSplitId(),
               direction: targetDirection,
               panels: [{ ...node, size: 50 }, newTerminal],
             };
@@ -1763,6 +1876,7 @@ export const useAppStore = create<AppState & AppActions>()(
           // Different direction, wrap in new split
           return {
             type: 'split',
+            id: generateSplitId(),
             direction: targetDirection,
             panels: [{ ...node, size: 50 }, newTerminal],
           };
@@ -1816,7 +1930,13 @@ export const useAppStore = create<AppState & AppActions>()(
           }
           if (newPanels.length === 0) return null;
           if (newPanels.length === 1) return newPanels[0];
-          return { ...node, panels: newPanels };
+          // Normalize sizes to sum to 100%
+          const totalSize = newPanels.reduce((sum, p) => sum + (p.size || 0), 0);
+          const normalizedPanels =
+            totalSize > 0
+              ? newPanels.map((p) => ({ ...p, size: ((p.size || 0) / totalSize) * 100 }))
+              : newPanels.map((p) => ({ ...p, size: 100 / newPanels.length }));
+          return { ...node, panels: normalizedPanels };
         };
 
         let newTabs = current.tabs.map((tab) => {
@@ -1873,14 +1993,25 @@ export const useAppStore = create<AppState & AppActions>()(
       },
 
       clearTerminalState: () => {
+        const current = get().terminalState;
         set({
           terminalState: {
-            isUnlocked: false,
-            authToken: null,
+            // Preserve auth state - user shouldn't need to re-authenticate
+            isUnlocked: current.isUnlocked,
+            authToken: current.authToken,
+            // Clear session-specific state only
             tabs: [],
             activeTabId: null,
             activeSessionId: null,
-            defaultFontSize: 14,
+            maximizedSessionId: null,
+            // Preserve user preferences - these should persist across projects
+            defaultFontSize: current.defaultFontSize,
+            defaultRunScript: current.defaultRunScript,
+            screenReaderMode: current.screenReaderMode,
+            fontFamily: current.fontFamily,
+            scrollbackLines: current.scrollbackLines,
+            lineHeight: current.lineHeight,
+            maxSessions: current.maxSessions,
           },
         });
       },
@@ -1906,6 +2037,62 @@ export const useAppStore = create<AppState & AppActions>()(
 
         set({
           terminalState: { ...current, tabs: newTabs },
+        });
+      },
+
+      setTerminalDefaultFontSize: (fontSize) => {
+        const current = get().terminalState;
+        const clampedSize = Math.max(8, Math.min(32, fontSize));
+        set({
+          terminalState: { ...current, defaultFontSize: clampedSize },
+        });
+      },
+
+      setTerminalDefaultRunScript: (script) => {
+        const current = get().terminalState;
+        set({
+          terminalState: { ...current, defaultRunScript: script },
+        });
+      },
+
+      setTerminalScreenReaderMode: (enabled) => {
+        const current = get().terminalState;
+        set({
+          terminalState: { ...current, screenReaderMode: enabled },
+        });
+      },
+
+      setTerminalFontFamily: (fontFamily) => {
+        const current = get().terminalState;
+        set({
+          terminalState: { ...current, fontFamily },
+        });
+      },
+
+      setTerminalScrollbackLines: (lines) => {
+        const current = get().terminalState;
+        // Clamp to reasonable range: 1000 - 100000 lines
+        const clampedLines = Math.max(1000, Math.min(100000, lines));
+        set({
+          terminalState: { ...current, scrollbackLines: clampedLines },
+        });
+      },
+
+      setTerminalLineHeight: (lineHeight) => {
+        const current = get().terminalState;
+        // Clamp to reasonable range: 1.0 - 2.0
+        const clampedHeight = Math.max(1.0, Math.min(2.0, lineHeight));
+        set({
+          terminalState: { ...current, lineHeight: clampedHeight },
+        });
+      },
+
+      setTerminalMaxSessions: (maxSessions) => {
+        const current = get().terminalState;
+        // Clamp to reasonable range: 1 - 500
+        const clampedMax = Math.max(1, Math.min(500, maxSessions));
+        set({
+          terminalState: { ...current, maxSessions: clampedMax },
         });
       },
 
@@ -1985,6 +2172,9 @@ export const useAppStore = create<AppState & AppActions>()(
             ...current,
             activeTabId: tabId,
             activeSessionId: newActiveSessionId,
+            // Clear maximized state when switching tabs - the maximized terminal
+            // belongs to the previous tab and shouldn't persist across tab switches
+            maximizedSessionId: null,
           },
         });
       },
@@ -1992,6 +2182,25 @@ export const useAppStore = create<AppState & AppActions>()(
       renameTerminalTab: (tabId, name) => {
         const current = get().terminalState;
         const newTabs = current.tabs.map((t) => (t.id === tabId ? { ...t, name } : t));
+        set({
+          terminalState: { ...current, tabs: newTabs },
+        });
+      },
+
+      reorderTerminalTabs: (fromTabId, toTabId) => {
+        const current = get().terminalState;
+        const fromIndex = current.tabs.findIndex((t) => t.id === fromTabId);
+        const toIndex = current.tabs.findIndex((t) => t.id === toTabId);
+
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+          return;
+        }
+
+        // Reorder tabs by moving fromIndex to toIndex
+        const newTabs = [...current.tabs];
+        const [movedTab] = newTabs.splice(fromIndex, 1);
+        newTabs.splice(toIndex, 0, movedTab);
+
         set({
           terminalState: { ...current, tabs: newTabs },
         });
@@ -2043,7 +2252,13 @@ export const useAppStore = create<AppState & AppActions>()(
           }
           if (newPanels.length === 0) return null;
           if (newPanels.length === 1) return newPanels[0];
-          return { ...node, panels: newPanels };
+          // Normalize sizes to sum to 100%
+          const totalSize = newPanels.reduce((sum, p) => sum + (p.size || 0), 0);
+          const normalizedPanels =
+            totalSize > 0
+              ? newPanels.map((p) => ({ ...p, size: ((p.size || 0) / totalSize) * 100 }))
+              : newPanels.map((p) => ({ ...p, size: 100 / newPanels.length }));
+          return { ...node, panels: normalizedPanels };
         };
 
         const newSourceLayout = removeAndCollapse(sourceTab.layout);
@@ -2093,6 +2308,7 @@ export const useAppStore = create<AppState & AppActions>()(
           } else if (targetTab.layout.type === 'terminal') {
             newTargetLayout = {
               type: 'split',
+              id: generateSplitId(),
               direction: 'horizontal',
               panels: [{ ...targetTab.layout, size: 50 }, terminalNode],
             };
@@ -2143,6 +2359,7 @@ export const useAppStore = create<AppState & AppActions>()(
         } else if (tab.layout.type === 'terminal') {
           newLayout = {
             type: 'split',
+            id: generateSplitId(),
             direction,
             panels: [{ ...tab.layout, size: 50 }, terminalNode],
           };
@@ -2159,6 +2376,7 @@ export const useAppStore = create<AppState & AppActions>()(
           } else {
             newLayout = {
               type: 'split',
+              id: generateSplitId(),
               direction,
               panels: [{ ...tab.layout, size: 50 }, terminalNode],
             };
@@ -2175,6 +2393,146 @@ export const useAppStore = create<AppState & AppActions>()(
             activeSessionId: sessionId,
           },
         });
+      },
+
+      setTerminalTabLayout: (tabId, layout, activeSessionId) => {
+        const current = get().terminalState;
+        const tab = current.tabs.find((t) => t.id === tabId);
+        if (!tab) return;
+
+        const newTabs = current.tabs.map((t) => (t.id === tabId ? { ...t, layout } : t));
+
+        // Find first terminal in layout if no activeSessionId provided
+        const findFirst = (node: TerminalPanelContent): string | null => {
+          if (node.type === 'terminal') return node.sessionId;
+          for (const p of node.panels) {
+            const found = findFirst(p);
+            if (found) return found;
+          }
+          return null;
+        };
+
+        const newActiveSessionId = activeSessionId || findFirst(layout);
+
+        set({
+          terminalState: {
+            ...current,
+            tabs: newTabs,
+            activeTabId: tabId,
+            activeSessionId: newActiveSessionId,
+          },
+        });
+      },
+
+      updateTerminalPanelSizes: (tabId, panelKeys, sizes) => {
+        const current = get().terminalState;
+        const tab = current.tabs.find((t) => t.id === tabId);
+        if (!tab || !tab.layout) return;
+
+        // Create a map of panel key to new size
+        const sizeMap = new Map<string, number>();
+        panelKeys.forEach((key, index) => {
+          sizeMap.set(key, sizes[index]);
+        });
+
+        // Helper to generate panel key (matches getPanelKey in terminal-view.tsx)
+        const getPanelKey = (panel: TerminalPanelContent): string => {
+          if (panel.type === 'terminal') return panel.sessionId;
+          const childKeys = panel.panels.map(getPanelKey).join('-');
+          return `split-${panel.direction}-${childKeys}`;
+        };
+
+        // Recursively update sizes in the layout
+        const updateSizes = (panel: TerminalPanelContent): TerminalPanelContent => {
+          const key = getPanelKey(panel);
+          const newSize = sizeMap.get(key);
+
+          if (panel.type === 'terminal') {
+            return newSize !== undefined ? { ...panel, size: newSize } : panel;
+          }
+
+          return {
+            ...panel,
+            size: newSize !== undefined ? newSize : panel.size,
+            panels: panel.panels.map(updateSizes),
+          };
+        };
+
+        const updatedLayout = updateSizes(tab.layout);
+
+        const newTabs = current.tabs.map((t) =>
+          t.id === tabId ? { ...t, layout: updatedLayout } : t
+        );
+
+        set({
+          terminalState: { ...current, tabs: newTabs },
+        });
+      },
+
+      // Convert runtime layout to persisted format (preserves sessionIds for reconnection)
+      saveTerminalLayout: (projectPath) => {
+        const current = get().terminalState;
+        if (current.tabs.length === 0) {
+          // Nothing to save, clear any existing layout
+          const { [projectPath]: _, ...rest } = get().terminalLayoutByProject;
+          set({ terminalLayoutByProject: rest });
+          return;
+        }
+
+        // Convert TerminalPanelContent to PersistedTerminalPanel
+        // Now preserves sessionId so we can reconnect when switching back
+        const persistPanel = (panel: TerminalPanelContent): PersistedTerminalPanel => {
+          if (panel.type === 'terminal') {
+            return {
+              type: 'terminal',
+              size: panel.size,
+              fontSize: panel.fontSize,
+              sessionId: panel.sessionId, // Preserve for reconnection
+            };
+          }
+          return {
+            type: 'split',
+            id: panel.id, // Preserve stable ID
+            direction: panel.direction,
+            panels: panel.panels.map(persistPanel),
+            size: panel.size,
+          };
+        };
+
+        const persistedTabs: PersistedTerminalTab[] = current.tabs.map((tab) => ({
+          id: tab.id,
+          name: tab.name,
+          layout: tab.layout ? persistPanel(tab.layout) : null,
+        }));
+
+        const activeTabIndex = current.tabs.findIndex((t) => t.id === current.activeTabId);
+
+        const persisted: PersistedTerminalState = {
+          tabs: persistedTabs,
+          activeTabIndex: activeTabIndex >= 0 ? activeTabIndex : 0,
+          defaultFontSize: current.defaultFontSize,
+          defaultRunScript: current.defaultRunScript,
+          screenReaderMode: current.screenReaderMode,
+          fontFamily: current.fontFamily,
+          scrollbackLines: current.scrollbackLines,
+          lineHeight: current.lineHeight,
+        };
+
+        set({
+          terminalLayoutByProject: {
+            ...get().terminalLayoutByProject,
+            [projectPath]: persisted,
+          },
+        });
+      },
+
+      getPersistedTerminalLayout: (projectPath) => {
+        return get().terminalLayoutByProject[projectPath] || null;
+      },
+
+      clearPersistedTerminalLayout: (projectPath) => {
+        const { [projectPath]: _, ...rest } = get().terminalLayoutByProject;
+        set({ terminalLayoutByProject: rest });
       },
 
       // Spec Creation actions
@@ -2208,6 +2566,43 @@ export const useAppStore = create<AppState & AppActions>()(
     {
       name: 'automaker-storage',
       version: 2, // Increment when making breaking changes to persisted state
+      // Custom merge function to properly restore terminal settings on every load
+      // The default shallow merge doesn't work because we persist terminalSettings
+      // separately from terminalState (to avoid persisting session data like tabs)
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<AppState> & {
+          terminalSettings?: PersistedTerminalSettings;
+        };
+        const current = currentState as AppState & AppActions;
+
+        // Start with default shallow merge
+        const merged = { ...current, ...persisted } as AppState & AppActions;
+
+        // Restore terminal settings into terminalState
+        // terminalSettings is persisted separately from terminalState to avoid
+        // persisting session data (tabs, activeSessionId, etc.)
+        if (persisted.terminalSettings) {
+          merged.terminalState = {
+            // Start with current (initial) terminalState for session fields
+            ...current.terminalState,
+            // Override with persisted settings
+            defaultFontSize:
+              persisted.terminalSettings.defaultFontSize ?? current.terminalState.defaultFontSize,
+            defaultRunScript:
+              persisted.terminalSettings.defaultRunScript ?? current.terminalState.defaultRunScript,
+            screenReaderMode:
+              persisted.terminalSettings.screenReaderMode ?? current.terminalState.screenReaderMode,
+            fontFamily: persisted.terminalSettings.fontFamily ?? current.terminalState.fontFamily,
+            scrollbackLines:
+              persisted.terminalSettings.scrollbackLines ?? current.terminalState.scrollbackLines,
+            lineHeight: persisted.terminalSettings.lineHeight ?? current.terminalState.lineHeight,
+            maxSessions:
+              persisted.terminalSettings.maxSessions ?? current.terminalState.maxSessions,
+          };
+        }
+
+        return merged;
+      },
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<AppState>;
 
@@ -2234,243 +2629,87 @@ export const useAppStore = create<AppState & AppActions>()(
           }
         }
 
+        // Rehydrate terminal settings from persisted state
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const persistedSettings = (state as any).terminalSettings as
+          | PersistedTerminalSettings
+          | undefined;
+        if (persistedSettings) {
+          state.terminalState = {
+            ...state.terminalState,
+            // Preserve session state (tabs, activeTabId, etc.) but restore settings
+            isUnlocked: state.terminalState?.isUnlocked ?? false,
+            authToken: state.terminalState?.authToken ?? null,
+            tabs: state.terminalState?.tabs ?? [],
+            activeTabId: state.terminalState?.activeTabId ?? null,
+            activeSessionId: state.terminalState?.activeSessionId ?? null,
+            maximizedSessionId: state.terminalState?.maximizedSessionId ?? null,
+            // Restore persisted settings
+            defaultFontSize: persistedSettings.defaultFontSize ?? 14,
+            defaultRunScript: persistedSettings.defaultRunScript ?? '',
+            screenReaderMode: persistedSettings.screenReaderMode ?? false,
+            fontFamily: persistedSettings.fontFamily ?? "Menlo, Monaco, 'Courier New', monospace",
+            scrollbackLines: persistedSettings.scrollbackLines ?? 5000,
+            lineHeight: persistedSettings.lineHeight ?? 1.0,
+            maxSessions: persistedSettings.maxSessions ?? 100,
+          };
+        }
+
         return state as AppState;
       },
-      partialize: (state) => ({
-        // Project management
-        projects: state.projects,
-        currentProject: state.currentProject,
-        trashedProjects: state.trashedProjects,
-        projectHistory: state.projectHistory,
-        projectHistoryIndex: state.projectHistoryIndex,
-        // Features - cached locally for faster hydration (authoritative source is server)
-        features: state.features,
-        // UI state
-        currentView: state.currentView,
-        theme: state.theme,
-        sidebarOpen: state.sidebarOpen,
-        chatHistoryOpen: state.chatHistoryOpen,
-        kanbanCardDetailLevel: state.kanbanCardDetailLevel,
-        // Settings
-        apiKeys: state.apiKeys,
-        maxConcurrency: state.maxConcurrency,
-        // Note: autoModeByProject is intentionally NOT persisted
-        // Auto-mode should always default to OFF on app refresh
-        defaultSkipTests: state.defaultSkipTests,
-        enableDependencyBlocking: state.enableDependencyBlocking,
-        useWorktrees: state.useWorktrees,
-        currentWorktreeByProject: state.currentWorktreeByProject,
-        worktreesByProject: state.worktreesByProject,
-        showProfilesOnly: state.showProfilesOnly,
-        keyboardShortcuts: state.keyboardShortcuts,
-        muteDoneSound: state.muteDoneSound,
-        enhancementModel: state.enhancementModel,
-        // Profiles and sessions
-        aiProfiles: state.aiProfiles,
-        chatSessions: state.chatSessions,
-        lastSelectedSessionByProject: state.lastSelectedSessionByProject,
-        // Board background settings
-        boardBackgroundByProject: state.boardBackgroundByProject,
-        defaultPlanningMode: state.defaultPlanningMode,
-        defaultRequirePlanApproval: state.defaultRequirePlanApproval,
-        defaultAIProfileId: state.defaultAIProfileId,
-        // Claude usage tracking
-        claudeUsage: state.claudeUsage,
-        claudeUsageLastUpdated: state.claudeUsageLastUpdated,
-        claudeRefreshInterval: state.claudeRefreshInterval,
-      }),
+      partialize: (state) =>
+        ({
+          // Project management
+          projects: state.projects,
+          currentProject: state.currentProject,
+          trashedProjects: state.trashedProjects,
+          projectHistory: state.projectHistory,
+          projectHistoryIndex: state.projectHistoryIndex,
+          // Features - cached locally for faster hydration (authoritative source is server)
+          features: state.features,
+          // UI state
+          currentView: state.currentView,
+          theme: state.theme,
+          sidebarOpen: state.sidebarOpen,
+          chatHistoryOpen: state.chatHistoryOpen,
+          kanbanCardDetailLevel: state.kanbanCardDetailLevel,
+          // Settings
+          apiKeys: state.apiKeys,
+          maxConcurrency: state.maxConcurrency,
+          // Note: autoModeByProject is intentionally NOT persisted
+          // Auto-mode should always default to OFF on app refresh
+          defaultSkipTests: state.defaultSkipTests,
+          enableDependencyBlocking: state.enableDependencyBlocking,
+          useWorktrees: state.useWorktrees,
+          currentWorktreeByProject: state.currentWorktreeByProject,
+          worktreesByProject: state.worktreesByProject,
+          showProfilesOnly: state.showProfilesOnly,
+          keyboardShortcuts: state.keyboardShortcuts,
+          muteDoneSound: state.muteDoneSound,
+          enhancementModel: state.enhancementModel,
+          // Profiles and sessions
+          aiProfiles: state.aiProfiles,
+          chatSessions: state.chatSessions,
+          lastSelectedSessionByProject: state.lastSelectedSessionByProject,
+          // Board background settings
+          boardBackgroundByProject: state.boardBackgroundByProject,
+          // Terminal layout persistence (per-project)
+          terminalLayoutByProject: state.terminalLayoutByProject,
+          // Terminal settings persistence (global)
+          terminalSettings: {
+            defaultFontSize: state.terminalState.defaultFontSize,
+            defaultRunScript: state.terminalState.defaultRunScript,
+            screenReaderMode: state.terminalState.screenReaderMode,
+            fontFamily: state.terminalState.fontFamily,
+            scrollbackLines: state.terminalState.scrollbackLines,
+            lineHeight: state.terminalState.lineHeight,
+            maxSessions: state.terminalState.maxSessions,
+          } as PersistedTerminalSettings,
+          defaultPlanningMode: state.defaultPlanningMode,
+          defaultRequirePlanApproval: state.defaultRequirePlanApproval,
+          defaultAIProfileId: state.defaultAIProfileId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
     }
   )
 );
-
-// ============================================================================
-// Settings Sync to Server (file-based storage)
-// ============================================================================
-
-// Debounced sync function to avoid excessive server calls
-let syncTimeoutId: NodeJS.Timeout | null = null;
-const SYNC_DEBOUNCE_MS = 2000; // Wait 2 seconds after last change before syncing
-
-/**
- * Schedule a sync of current settings to the server
- * This is debounced to avoid excessive API calls
- */
-function scheduleSyncToServer() {
-  // Only sync in Electron mode
-  if (typeof window === 'undefined') return;
-
-  // Clear any pending sync
-  if (syncTimeoutId) {
-    clearTimeout(syncTimeoutId);
-  }
-
-  // Schedule new sync
-  syncTimeoutId = setTimeout(async () => {
-    try {
-      // Dynamic import to avoid circular dependencies
-      const { syncSettingsToServer } = await import('@/hooks/use-settings-migration');
-      await syncSettingsToServer();
-    } catch (error) {
-      console.error('[AppStore] Failed to sync settings to server:', error);
-    }
-  }, SYNC_DEBOUNCE_MS);
-}
-
-// Subscribe to store changes and sync to server
-// Only sync when important settings change (not every state change)
-let previousState: Partial<AppState> | null = null;
-let previousProjectSettings: Record<
-  string,
-  {
-    theme?: string;
-    boardBackground?: (typeof initialState.boardBackgroundByProject)[string];
-    currentWorktree?: (typeof initialState.currentWorktreeByProject)[string];
-    worktrees?: (typeof initialState.worktreesByProject)[string];
-  }
-> = {};
-
-// Track pending project syncs (debounced per project)
-const projectSyncTimeouts: Record<string, NodeJS.Timeout> = {};
-const PROJECT_SYNC_DEBOUNCE_MS = 2000;
-
-/**
- * Schedule sync of project settings to server
- */
-function scheduleProjectSettingsSync(projectPath: string, updates: Record<string, unknown>) {
-  // Only sync in Electron mode
-  if (typeof window === 'undefined') return;
-
-  // Clear any pending sync for this project
-  if (projectSyncTimeouts[projectPath]) {
-    clearTimeout(projectSyncTimeouts[projectPath]);
-  }
-
-  // Schedule new sync
-  projectSyncTimeouts[projectPath] = setTimeout(async () => {
-    try {
-      const { syncProjectSettingsToServer } = await import('@/hooks/use-settings-migration');
-      await syncProjectSettingsToServer(projectPath, updates);
-    } catch (error) {
-      console.error(`[AppStore] Failed to sync project settings for ${projectPath}:`, error);
-    }
-    delete projectSyncTimeouts[projectPath];
-  }, PROJECT_SYNC_DEBOUNCE_MS);
-}
-
-useAppStore.subscribe((state) => {
-  // Skip if this is the initial load
-  if (!previousState) {
-    previousState = {
-      theme: state.theme,
-      projects: state.projects,
-      trashedProjects: state.trashedProjects,
-      keyboardShortcuts: state.keyboardShortcuts,
-      aiProfiles: state.aiProfiles,
-      maxConcurrency: state.maxConcurrency,
-      defaultSkipTests: state.defaultSkipTests,
-      enableDependencyBlocking: state.enableDependencyBlocking,
-      useWorktrees: state.useWorktrees,
-      showProfilesOnly: state.showProfilesOnly,
-      muteDoneSound: state.muteDoneSound,
-      enhancementModel: state.enhancementModel,
-      defaultPlanningMode: state.defaultPlanningMode,
-      defaultRequirePlanApproval: state.defaultRequirePlanApproval,
-      defaultAIProfileId: state.defaultAIProfileId,
-    };
-    // Initialize project settings tracking
-    for (const project of state.projects) {
-      previousProjectSettings[project.path] = {
-        theme: project.theme,
-        boardBackground: state.boardBackgroundByProject[project.path],
-        currentWorktree: state.currentWorktreeByProject[project.path],
-        worktrees: state.worktreesByProject[project.path],
-      };
-    }
-    return;
-  }
-
-  // Check if any important global settings changed
-  const importantSettingsChanged =
-    state.theme !== previousState.theme ||
-    state.projects !== previousState.projects ||
-    state.trashedProjects !== previousState.trashedProjects ||
-    state.keyboardShortcuts !== previousState.keyboardShortcuts ||
-    state.aiProfiles !== previousState.aiProfiles ||
-    state.maxConcurrency !== previousState.maxConcurrency ||
-    state.defaultSkipTests !== previousState.defaultSkipTests ||
-    state.enableDependencyBlocking !== previousState.enableDependencyBlocking ||
-    state.useWorktrees !== previousState.useWorktrees ||
-    state.showProfilesOnly !== previousState.showProfilesOnly ||
-    state.muteDoneSound !== previousState.muteDoneSound ||
-    state.enhancementModel !== previousState.enhancementModel ||
-    state.defaultPlanningMode !== previousState.defaultPlanningMode ||
-    state.defaultRequirePlanApproval !== previousState.defaultRequirePlanApproval ||
-    state.defaultAIProfileId !== previousState.defaultAIProfileId;
-
-  if (importantSettingsChanged) {
-    // Update previous state
-    previousState = {
-      theme: state.theme,
-      projects: state.projects,
-      trashedProjects: state.trashedProjects,
-      keyboardShortcuts: state.keyboardShortcuts,
-      aiProfiles: state.aiProfiles,
-      maxConcurrency: state.maxConcurrency,
-      defaultSkipTests: state.defaultSkipTests,
-      enableDependencyBlocking: state.enableDependencyBlocking,
-      useWorktrees: state.useWorktrees,
-      showProfilesOnly: state.showProfilesOnly,
-      muteDoneSound: state.muteDoneSound,
-      enhancementModel: state.enhancementModel,
-      defaultPlanningMode: state.defaultPlanningMode,
-      defaultRequirePlanApproval: state.defaultRequirePlanApproval,
-      defaultAIProfileId: state.defaultAIProfileId,
-    };
-
-    // Schedule sync to server
-    scheduleSyncToServer();
-  }
-
-  // Check for per-project settings changes
-  for (const project of state.projects) {
-    const projectPath = project.path;
-    const prev = previousProjectSettings[projectPath] || {};
-    const updates: Record<string, unknown> = {};
-
-    // Check if project theme changed
-    if (project.theme !== prev.theme) {
-      updates.theme = project.theme;
-    }
-
-    // Check if board background changed
-    const currentBg = state.boardBackgroundByProject[projectPath];
-    if (currentBg !== prev.boardBackground) {
-      updates.boardBackground = currentBg;
-    }
-
-    // Check if current worktree changed
-    const currentWt = state.currentWorktreeByProject[projectPath];
-    if (currentWt !== prev.currentWorktree) {
-      updates.currentWorktree = currentWt;
-    }
-
-    // Check if worktrees list changed
-    const worktrees = state.worktreesByProject[projectPath];
-    if (worktrees !== prev.worktrees) {
-      updates.worktrees = worktrees;
-    }
-
-    // If any project settings changed, sync them
-    if (Object.keys(updates).length > 0) {
-      scheduleProjectSettingsSync(projectPath, updates);
-
-      // Update tracking
-      previousProjectSettings[projectPath] = {
-        theme: project.theme,
-        boardBackground: currentBg,
-        currentWorktree: currentWt,
-        worktrees: worktrees,
-      };
-    }
-  }
-});

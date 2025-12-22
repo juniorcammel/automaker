@@ -39,6 +39,10 @@ function RootLayoutContent() {
       if (role === 'textbox' || role === 'searchbox' || role === 'combobox') {
         return;
       }
+      // Don't intercept when focused inside a terminal
+      if (activeElement.closest('.xterm') || activeElement.closest('[data-terminal-container]')) {
+        return;
+      }
     }
 
     if (event.ctrlKey || event.altKey || event.metaKey) {

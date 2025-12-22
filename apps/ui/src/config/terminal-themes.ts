@@ -3,7 +3,7 @@
  * Each theme provides colors for xterm.js terminal emulator
  */
 
-import type { ThemeMode } from '@automaker/types';
+import type { ThemeMode } from '@/store/app-store';
 
 export interface TerminalTheme {
   background: string;
@@ -28,7 +28,36 @@ export interface TerminalTheme {
   brightMagenta: string;
   brightCyan: string;
   brightWhite: string;
+  // Search highlighting colors - for xterm SearchAddon
+  searchMatchBackground: string;
+  searchMatchBorder: string;
+  searchActiveMatchBackground: string;
+  searchActiveMatchBorder: string;
 }
+
+/**
+ * Terminal font options for user selection
+ * These are monospace fonts commonly available on different platforms
+ */
+export interface TerminalFontOption {
+  value: string;
+  label: string;
+}
+
+export const TERMINAL_FONT_OPTIONS: TerminalFontOption[] = [
+  { value: "Menlo, Monaco, 'Courier New', monospace", label: 'Menlo / Monaco' },
+  { value: "'SF Mono', Menlo, Monaco, monospace", label: 'SF Mono' },
+  { value: "'JetBrains Mono', monospace", label: 'JetBrains Mono' },
+  { value: "'Fira Code', monospace", label: 'Fira Code' },
+  { value: "'Source Code Pro', monospace", label: 'Source Code Pro' },
+  { value: "Consolas, 'Courier New', monospace", label: 'Consolas' },
+  { value: "'Ubuntu Mono', monospace", label: 'Ubuntu Mono' },
+];
+
+/**
+ * Default terminal font family (first option)
+ */
+export const DEFAULT_TERMINAL_FONT = TERMINAL_FONT_OPTIONS[0].value;
 
 // Dark theme (default)
 const darkTheme: TerminalTheme = {
@@ -53,6 +82,11 @@ const darkTheme: TerminalTheme = {
   brightMagenta: '#c586c0',
   brightCyan: '#4ec9b0',
   brightWhite: '#ffffff',
+  // Search colors - bright yellow for visibility on dark background
+  searchMatchBackground: '#6b5300',
+  searchMatchBorder: '#e2ac00',
+  searchActiveMatchBackground: '#ff8c00',
+  searchActiveMatchBorder: '#ffb74d',
 };
 
 // Light theme
@@ -78,6 +112,11 @@ const lightTheme: TerminalTheme = {
   brightMagenta: '#c678dd',
   brightCyan: '#56b6c2',
   brightWhite: '#ffffff',
+  // Search colors - darker for visibility on light background
+  searchMatchBackground: '#fff3b0',
+  searchMatchBorder: '#c9a500',
+  searchActiveMatchBackground: '#ffcc00',
+  searchActiveMatchBorder: '#996600',
 };
 
 // Retro / Cyberpunk theme - neon green on black
@@ -104,6 +143,11 @@ const retroTheme: TerminalTheme = {
   brightMagenta: '#ff55ff',
   brightCyan: '#55ffff',
   brightWhite: '#ffffff',
+  // Search colors - magenta/pink for contrast with green text
+  searchMatchBackground: '#660066',
+  searchMatchBorder: '#ff00ff',
+  searchActiveMatchBackground: '#cc00cc',
+  searchActiveMatchBorder: '#ff66ff',
 };
 
 // Dracula theme
@@ -129,6 +173,11 @@ const draculaTheme: TerminalTheme = {
   brightMagenta: '#ff92df',
   brightCyan: '#a4ffff',
   brightWhite: '#ffffff',
+  // Search colors - orange for visibility
+  searchMatchBackground: '#8b5a00',
+  searchMatchBorder: '#ffb86c',
+  searchActiveMatchBackground: '#ff9500',
+  searchActiveMatchBorder: '#ffcc80',
 };
 
 // Nord theme
@@ -154,6 +203,11 @@ const nordTheme: TerminalTheme = {
   brightMagenta: '#b48ead',
   brightCyan: '#8fbcbb',
   brightWhite: '#eceff4',
+  // Search colors - warm yellow/orange for cold blue theme
+  searchMatchBackground: '#5e4a00',
+  searchMatchBorder: '#ebcb8b',
+  searchActiveMatchBackground: '#d08770',
+  searchActiveMatchBorder: '#e8a87a',
 };
 
 // Monokai theme
@@ -179,6 +233,11 @@ const monokaiTheme: TerminalTheme = {
   brightMagenta: '#ae81ff',
   brightCyan: '#a1efe4',
   brightWhite: '#f9f8f5',
+  // Search colors - orange/gold for contrast
+  searchMatchBackground: '#6b4400',
+  searchMatchBorder: '#f4bf75',
+  searchActiveMatchBackground: '#e69500',
+  searchActiveMatchBorder: '#ffd080',
 };
 
 // Tokyo Night theme
@@ -204,13 +263,18 @@ const tokyonightTheme: TerminalTheme = {
   brightMagenta: '#bb9af7',
   brightCyan: '#7dcfff',
   brightWhite: '#c0caf5',
+  // Search colors - warm orange for cold blue theme
+  searchMatchBackground: '#5c4a00',
+  searchMatchBorder: '#e0af68',
+  searchActiveMatchBackground: '#ff9e64',
+  searchActiveMatchBorder: '#ffb380',
 };
 
-// Solarized Dark theme
+// Solarized Dark theme (improved contrast for WCAG compliance)
 const solarizedTheme: TerminalTheme = {
   background: '#002b36',
-  foreground: '#839496',
-  cursor: '#839496',
+  foreground: '#93a1a1', // Changed from #839496 (base0) to #93a1a1 (base1) for better contrast
+  cursor: '#93a1a1',
   cursorAccent: '#002b36',
   selectionBackground: '#073642',
   black: '#073642',
@@ -229,6 +293,11 @@ const solarizedTheme: TerminalTheme = {
   brightMagenta: '#6c71c4',
   brightCyan: '#93a1a1',
   brightWhite: '#fdf6e3',
+  // Search colors - orange (solarized orange) for visibility
+  searchMatchBackground: '#5c3d00',
+  searchMatchBorder: '#b58900',
+  searchActiveMatchBackground: '#cb4b16',
+  searchActiveMatchBorder: '#e07040',
 };
 
 // Gruvbox Dark theme
@@ -254,6 +323,11 @@ const gruvboxTheme: TerminalTheme = {
   brightMagenta: '#d3869b',
   brightCyan: '#8ec07c',
   brightWhite: '#ebdbb2',
+  // Search colors - bright orange for gruvbox
+  searchMatchBackground: '#6b4500',
+  searchMatchBorder: '#d79921',
+  searchActiveMatchBackground: '#fe8019',
+  searchActiveMatchBorder: '#ffaa40',
 };
 
 // Catppuccin Mocha theme
@@ -279,6 +353,11 @@ const catppuccinTheme: TerminalTheme = {
   brightMagenta: '#cba6f7',
   brightCyan: '#94e2d5',
   brightWhite: '#a6adc8',
+  // Search colors - peach/orange from catppuccin palette
+  searchMatchBackground: '#5c4020',
+  searchMatchBorder: '#fab387',
+  searchActiveMatchBackground: '#fab387',
+  searchActiveMatchBorder: '#fcc8a0',
 };
 
 // One Dark theme
@@ -304,6 +383,11 @@ const onedarkTheme: TerminalTheme = {
   brightMagenta: '#c678dd',
   brightCyan: '#56b6c2',
   brightWhite: '#ffffff',
+  // Search colors - orange/gold for visibility
+  searchMatchBackground: '#5c4500',
+  searchMatchBorder: '#e5c07b',
+  searchActiveMatchBackground: '#d19a66',
+  searchActiveMatchBorder: '#e8b888',
 };
 
 // Synthwave '84 theme
@@ -329,6 +413,11 @@ const synthwaveTheme: TerminalTheme = {
   brightMagenta: '#ff7edb',
   brightCyan: '#03edf9',
   brightWhite: '#ffffff',
+  // Search colors - hot pink/magenta for synthwave aesthetic
+  searchMatchBackground: '#6b2a7a',
+  searchMatchBorder: '#ff7edb',
+  searchActiveMatchBackground: '#ff7edb',
+  searchActiveMatchBorder: '#ffffff',
 };
 
 // Red theme - Dark theme with red accents
@@ -354,6 +443,11 @@ const redTheme: TerminalTheme = {
   brightMagenta: '#cc77aa',
   brightCyan: '#77aaaa',
   brightWhite: '#d0c0c0',
+  // Search colors - orange/gold to contrast with red theme
+  searchMatchBackground: '#5a3520',
+  searchMatchBorder: '#ccaa55',
+  searchActiveMatchBackground: '#ddbb66',
+  searchActiveMatchBorder: '#ffdd88',
 };
 
 // Cream theme - Warm, soft, easy on the eyes
@@ -379,6 +473,11 @@ const creamTheme: TerminalTheme = {
   brightMagenta: '#c080a0',
   brightCyan: '#70b0a0',
   brightWhite: '#d0c0b0',
+  // Search colors - blue for contrast on light cream background
+  searchMatchBackground: '#c0d4e8',
+  searchMatchBorder: '#6b8aaa',
+  searchActiveMatchBackground: '#6b8aaa',
+  searchActiveMatchBorder: '#4a6a8a',
 };
 
 // Sunset theme - Mellow oranges and soft pastels
@@ -404,6 +503,11 @@ const sunsetTheme: TerminalTheme = {
   brightMagenta: '#dd88aa',
   brightCyan: '#88ddbb',
   brightWhite: '#f5e8dd',
+  // Search colors - orange for warm sunset theme
+  searchMatchBackground: '#5a3a30',
+  searchMatchBorder: '#ddaa66',
+  searchActiveMatchBackground: '#eebb77',
+  searchActiveMatchBorder: '#ffdd99',
 };
 
 // Gray theme - Modern, minimal gray scheme inspired by Cursor
@@ -429,414 +533,18 @@ const grayTheme: TerminalTheme = {
   brightMagenta: '#c098c8',
   brightCyan: '#80b8c8',
   brightWhite: '#e0e0e8',
-};
-
-// Forest theme - Deep green
-const forestTheme: TerminalTheme = {
-  background: '#1a2e1a',
-  foreground: '#c8e0c8',
-  cursor: '#50c878',
-  cursorAccent: '#1a2e1a',
-  selectionBackground: '#2a4a2a',
-  black: '#1a2e1a',
-  red: '#c85050',
-  green: '#50c878',
-  yellow: '#c8b050',
-  blue: '#5080c0',
-  magenta: '#a060a0',
-  cyan: '#50a090',
-  white: '#a8c0a8',
-  brightBlack: '#4a6a4a',
-  brightRed: '#e87878',
-  brightGreen: '#78e0a0',
-  brightYellow: '#e0c878',
-  brightBlue: '#78a0e0',
-  brightMagenta: '#c088c0',
-  brightCyan: '#78c0b0',
-  brightWhite: '#d0e8d0',
-};
-
-// Ocean theme - Deep blue
-const oceanTheme: TerminalTheme = {
-  background: '#1a1e2e',
-  foreground: '#c8d0e8',
-  cursor: '#5090e0',
-  cursorAccent: '#1a1e2e',
-  selectionBackground: '#2a3a5a',
-  black: '#1a1e2e',
-  red: '#e06070',
-  green: '#60b080',
-  yellow: '#d0b060',
-  blue: '#5090e0',
-  magenta: '#a070c0',
-  cyan: '#50b0c0',
-  white: '#a0b0c8',
-  brightBlack: '#4a5a7a',
-  brightRed: '#f08090',
-  brightGreen: '#80d0a0',
-  brightYellow: '#f0d080',
-  brightBlue: '#70b0f0',
-  brightMagenta: '#c090e0',
-  brightCyan: '#70d0e0',
-  brightWhite: '#d0e0f0',
-};
-
-// Solarized Light theme
-const solarizedlightTheme: TerminalTheme = {
-  background: '#fdf6e3',
-  foreground: '#657b83',
-  cursor: '#657b83',
-  cursorAccent: '#fdf6e3',
-  selectionBackground: '#eee8d5',
-  black: '#073642',
-  red: '#dc322f',
-  green: '#859900',
-  yellow: '#b58900',
-  blue: '#268bd2',
-  magenta: '#d33682',
-  cyan: '#2aa198',
-  white: '#eee8d5',
-  brightBlack: '#002b36',
-  brightRed: '#cb4b16',
-  brightGreen: '#586e75',
-  brightYellow: '#657b83',
-  brightBlue: '#839496',
-  brightMagenta: '#6c71c4',
-  brightCyan: '#93a1a1',
-  brightWhite: '#fdf6e3',
-};
-
-// GitHub Light theme
-const githubTheme: TerminalTheme = {
-  background: '#ffffff',
-  foreground: '#24292f',
-  cursor: '#0969da',
-  cursorAccent: '#ffffff',
-  selectionBackground: '#add6ff',
-  black: '#24292f',
-  red: '#cf222e',
-  green: '#1a7f37',
-  yellow: '#9a6700',
-  blue: '#0969da',
-  magenta: '#8250df',
-  cyan: '#1b7c83',
-  white: '#6e7781',
-  brightBlack: '#57606a',
-  brightRed: '#a40e26',
-  brightGreen: '#2da44e',
-  brightYellow: '#bf8700',
-  brightBlue: '#218bff',
-  brightMagenta: '#a475f9',
-  brightCyan: '#3192aa',
-  brightWhite: '#8c959f',
-};
-
-// Paper theme - Clean minimal
-const paperTheme: TerminalTheme = {
-  background: '#fafafa',
-  foreground: '#1a1a1a',
-  cursor: '#333333',
-  cursorAccent: '#fafafa',
-  selectionBackground: '#e0e0e0',
-  black: '#1a1a1a',
-  red: '#c04040',
-  green: '#408040',
-  yellow: '#907020',
-  blue: '#406090',
-  magenta: '#704080',
-  cyan: '#307070',
-  white: '#808080',
-  brightBlack: '#505050',
-  brightRed: '#d06060',
-  brightGreen: '#60a060',
-  brightYellow: '#b09040',
-  brightBlue: '#6080b0',
-  brightMagenta: '#9060a0',
-  brightCyan: '#509090',
-  brightWhite: '#a0a0a0',
-};
-
-// Rose theme - Soft pink
-const roseTheme: TerminalTheme = {
-  background: '#fdf2f4',
-  foreground: '#4a3035',
-  cursor: '#e11d48',
-  cursorAccent: '#fdf2f4',
-  selectionBackground: '#fce7f3',
-  black: '#4a3035',
-  red: '#e11d48',
-  green: '#059669',
-  yellow: '#d97706',
-  blue: '#3b82f6',
-  magenta: '#c026d3',
-  cyan: '#0891b2',
-  white: '#9f8c91',
-  brightBlack: '#6b5a5f',
-  brightRed: '#f43f5e',
-  brightGreen: '#10b981',
-  brightYellow: '#f59e0b',
-  brightBlue: '#60a5fa',
-  brightMagenta: '#e879f9',
-  brightCyan: '#22d3ee',
-  brightWhite: '#c4b3b8',
-};
-
-// Mint theme - Fresh green
-const mintTheme: TerminalTheme = {
-  background: '#f0fdf4',
-  foreground: '#14532d',
-  cursor: '#10b981',
-  cursorAccent: '#f0fdf4',
-  selectionBackground: '#dcfce7',
-  black: '#14532d',
-  red: '#dc2626',
-  green: '#10b981',
-  yellow: '#ca8a04',
-  blue: '#2563eb',
-  magenta: '#9333ea',
-  cyan: '#0891b2',
-  white: '#6b7c71',
-  brightBlack: '#3f5c47',
-  brightRed: '#ef4444',
-  brightGreen: '#34d399',
-  brightYellow: '#eab308',
-  brightBlue: '#3b82f6',
-  brightMagenta: '#a855f7',
-  brightCyan: '#06b6d4',
-  brightWhite: '#8fa196',
-};
-
-// Lavender theme - Soft purple
-const lavenderTheme: TerminalTheme = {
-  background: '#faf5ff',
-  foreground: '#3b2e50',
-  cursor: '#9333ea',
-  cursorAccent: '#faf5ff',
-  selectionBackground: '#f3e8ff',
-  black: '#3b2e50',
-  red: '#dc2626',
-  green: '#16a34a',
-  yellow: '#ca8a04',
-  blue: '#2563eb',
-  magenta: '#9333ea',
-  cyan: '#0891b2',
-  white: '#7c7089',
-  brightBlack: '#5a4d6b',
-  brightRed: '#ef4444',
-  brightGreen: '#22c55e',
-  brightYellow: '#eab308',
-  brightBlue: '#3b82f6',
-  brightMagenta: '#a855f7',
-  brightCyan: '#06b6d4',
-  brightWhite: '#a094ab',
-};
-
-// Sand theme - Sandy beige
-const sandTheme: TerminalTheme = {
-  background: '#faf5f0',
-  foreground: '#45392d',
-  cursor: '#d97706',
-  cursorAccent: '#faf5f0',
-  selectionBackground: '#fef3c7',
-  black: '#45392d',
-  red: '#dc2626',
-  green: '#65a30d',
-  yellow: '#d97706',
-  blue: '#0369a1',
-  magenta: '#9333ea',
-  cyan: '#0e7490',
-  white: '#8a7e71',
-  brightBlack: '#6b5d4f',
-  brightRed: '#ef4444',
-  brightGreen: '#84cc16',
-  brightYellow: '#f59e0b',
-  brightBlue: '#0284c7',
-  brightMagenta: '#a855f7',
-  brightCyan: '#06b6d4',
-  brightWhite: '#aea196',
-};
-
-// Sky theme - Light blue
-const skyTheme: TerminalTheme = {
-  background: '#f0f9ff',
-  foreground: '#1e3a5f',
-  cursor: '#0ea5e9',
-  cursorAccent: '#f0f9ff',
-  selectionBackground: '#e0f2fe',
-  black: '#1e3a5f',
-  red: '#dc2626',
-  green: '#16a34a',
-  yellow: '#ca8a04',
-  blue: '#0ea5e9',
-  magenta: '#9333ea',
-  cyan: '#0891b2',
-  white: '#64748b',
-  brightBlack: '#475569',
-  brightRed: '#ef4444',
-  brightGreen: '#22c55e',
-  brightYellow: '#eab308',
-  brightBlue: '#38bdf8',
-  brightMagenta: '#a855f7',
-  brightCyan: '#06b6d4',
-  brightWhite: '#94a3b8',
-};
-
-// Peach theme - Soft coral
-const peachTheme: TerminalTheme = {
-  background: '#fff7ed',
-  foreground: '#431407',
-  cursor: '#f97316',
-  cursorAccent: '#fff7ed',
-  selectionBackground: '#fed7aa',
-  black: '#431407',
-  red: '#dc2626',
-  green: '#16a34a',
-  yellow: '#d97706',
-  blue: '#2563eb',
-  magenta: '#c026d3',
-  cyan: '#0891b2',
-  white: '#78716c',
-  brightBlack: '#57534e',
-  brightRed: '#ef4444',
-  brightGreen: '#22c55e',
-  brightYellow: '#f59e0b',
-  brightBlue: '#3b82f6',
-  brightMagenta: '#e879f9',
-  brightCyan: '#22d3ee',
-  brightWhite: '#a8a29e',
-};
-
-// Snow theme - Clean white with cool tints
-const snowTheme: TerminalTheme = {
-  background: '#fafbff',
-  foreground: '#1e293b',
-  cursor: '#6366f1',
-  cursorAccent: '#fafbff',
-  selectionBackground: '#e0e7ff',
-  black: '#1e293b',
-  red: '#dc2626',
-  green: '#16a34a',
-  yellow: '#ca8a04',
-  blue: '#6366f1',
-  magenta: '#8b5cf6',
-  cyan: '#0891b2',
-  white: '#64748b',
-  brightBlack: '#475569',
-  brightRed: '#ef4444',
-  brightGreen: '#22c55e',
-  brightYellow: '#eab308',
-  brightBlue: '#818cf8',
-  brightMagenta: '#a78bfa',
-  brightCyan: '#06b6d4',
-  brightWhite: '#94a3b8',
-};
-
-// Sepia theme - Warm parchment
-const sepiaTheme: TerminalTheme = {
-  background: '#f5f0e6',
-  foreground: '#3d3225',
-  cursor: '#92400e',
-  cursorAccent: '#f5f0e6',
-  selectionBackground: '#e8dcc8',
-  black: '#3d3225',
-  red: '#9a3412',
-  green: '#4d7c0f',
-  yellow: '#92400e',
-  blue: '#1d4ed8',
-  magenta: '#7e22ce',
-  cyan: '#0e7490',
-  white: '#78716c',
-  brightBlack: '#57534e',
-  brightRed: '#c2410c',
-  brightGreen: '#65a30d',
-  brightYellow: '#b45309',
-  brightBlue: '#2563eb',
-  brightMagenta: '#9333ea',
-  brightCyan: '#0891b2',
-  brightWhite: '#a8a29e',
-};
-
-// Gruvbox Light theme
-const gruvboxlightTheme: TerminalTheme = {
-  background: '#fbf1c7',
-  foreground: '#3c3836',
-  cursor: '#b57614',
-  cursorAccent: '#fbf1c7',
-  selectionBackground: '#ebdbb2',
-  black: '#3c3836',
-  red: '#9d0006',
-  green: '#79740e',
-  yellow: '#b57614',
-  blue: '#076678',
-  magenta: '#8f3f71',
-  cyan: '#427b58',
-  white: '#7c6f64',
-  brightBlack: '#928374',
-  brightRed: '#cc241d',
-  brightGreen: '#98971a',
-  brightYellow: '#d79921',
-  brightBlue: '#458588',
-  brightMagenta: '#b16286',
-  brightCyan: '#689d6a',
-  brightWhite: '#a89984',
-};
-
-// Nord Light theme
-const nordlightTheme: TerminalTheme = {
-  background: '#eceff4',
-  foreground: '#2e3440',
-  cursor: '#5e81ac',
-  cursorAccent: '#eceff4',
-  selectionBackground: '#d8dee9',
-  black: '#2e3440',
-  red: '#bf616a',
-  green: '#a3be8c',
-  yellow: '#ebcb8b',
-  blue: '#5e81ac',
-  magenta: '#b48ead',
-  cyan: '#88c0d0',
-  white: '#4c566a',
-  brightBlack: '#434c5e',
-  brightRed: '#bf616a',
-  brightGreen: '#a3be8c',
-  brightYellow: '#ebcb8b',
-  brightBlue: '#81a1c1',
-  brightMagenta: '#b48ead',
-  brightCyan: '#8fbcbb',
-  brightWhite: '#3b4252',
-};
-
-// Blossom theme - Cherry blossom pink
-const blossomTheme: TerminalTheme = {
-  background: '#fdf2f8',
-  foreground: '#4a2040',
-  cursor: '#ec4899',
-  cursorAccent: '#fdf2f8',
-  selectionBackground: '#fce7f3',
-  black: '#4a2040',
-  red: '#e11d48',
-  green: '#059669',
-  yellow: '#d97706',
-  blue: '#3b82f6',
-  magenta: '#ec4899',
-  cyan: '#0891b2',
-  white: '#9f708c',
-  brightBlack: '#6b4060',
-  brightRed: '#f43f5e',
-  brightGreen: '#10b981',
-  brightYellow: '#f59e0b',
-  brightBlue: '#60a5fa',
-  brightMagenta: '#f472b6',
-  brightCyan: '#22d3ee',
-  brightWhite: '#c4a0b4',
+  // Search colors - blue for modern feel
+  searchMatchBackground: '#3a4a60',
+  searchMatchBorder: '#7090c0',
+  searchActiveMatchBackground: '#90b0d8',
+  searchActiveMatchBorder: '#b0d0f0',
 };
 
 // Theme mapping
 const terminalThemes: Record<ThemeMode, TerminalTheme> = {
-  // Special
-  system: darkTheme, // Will be resolved at runtime
-  // Dark themes (16)
+  light: lightTheme,
   dark: darkTheme,
+  system: darkTheme, // Will be resolved at runtime
   retro: retroTheme,
   dracula: draculaTheme,
   nord: nordTheme,
@@ -848,27 +556,9 @@ const terminalThemes: Record<ThemeMode, TerminalTheme> = {
   onedark: onedarkTheme,
   synthwave: synthwaveTheme,
   red: redTheme,
+  cream: creamTheme,
   sunset: sunsetTheme,
   gray: grayTheme,
-  forest: forestTheme,
-  ocean: oceanTheme,
-  // Light themes (16)
-  light: lightTheme,
-  cream: creamTheme,
-  solarizedlight: solarizedlightTheme,
-  github: githubTheme,
-  paper: paperTheme,
-  rose: roseTheme,
-  mint: mintTheme,
-  lavender: lavenderTheme,
-  sand: sandTheme,
-  sky: skyTheme,
-  peach: peachTheme,
-  snow: snowTheme,
-  sepia: sepiaTheme,
-  gruvboxlight: gruvboxlightTheme,
-  nordlight: nordlightTheme,
-  blossom: blossomTheme,
 };
 
 /**

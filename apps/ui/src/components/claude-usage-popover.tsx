@@ -1,27 +1,16 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import {
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ExternalLink,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getElectronAPI } from "@/lib/electron";
-import { useAppStore } from "@/store/app-store";
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getElectronAPI } from '@/lib/electron';
+import { useAppStore } from '@/store/app-store';
 
 // Error codes for distinguishing failure modes
 const ERROR_CODES = {
-  API_BRIDGE_UNAVAILABLE: "API_BRIDGE_UNAVAILABLE",
-  AUTH_ERROR: "AUTH_ERROR",
-  UNKNOWN: "UNKNOWN",
+  API_BRIDGE_UNAVAILABLE: 'API_BRIDGE_UNAVAILABLE',
+  AUTH_ERROR: 'AUTH_ERROR',
+  UNKNOWN: 'UNKNOWN',
 } as const;
 
 type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -116,16 +105,10 @@ export function ClaudeUsagePopover() {
   };
 
   // Helper component for the progress bar
-  const ProgressBar = ({
-    percentage,
-    colorClass,
-  }: {
-    percentage: number;
-    colorClass: string;
-  }) => (
+  const ProgressBar = ({ percentage, colorClass }: { percentage: number; colorClass: string }) => (
     <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
       <div
-        className={cn("h-full transition-all duration-500", colorClass)}
+        className={cn('h-full transition-all duration-500', colorClass)}
         style={{ width: `${Math.min(percentage, 100)}%` }}
       />
     </div>
@@ -147,7 +130,8 @@ export function ClaudeUsagePopover() {
     stale?: boolean;
   }) => {
     // Check if percentage is valid (not NaN, not undefined, is a finite number)
-    const isValidPercentage = typeof percentage === "number" && !isNaN(percentage) && isFinite(percentage);
+    const isValidPercentage =
+      typeof percentage === 'number' && !isNaN(percentage) && isFinite(percentage);
     const safePercentage = isValidPercentage ? percentage : 0;
 
     const status = getStatusInfo(safePercentage);
@@ -156,26 +140,24 @@ export function ClaudeUsagePopover() {
     return (
       <div
         className={cn(
-          "rounded-xl border bg-card/50 p-4 transition-opacity",
-          isPrimary ? "border-border/60 shadow-sm" : "border-border/40",
-          (stale || !isValidPercentage) && "opacity-50"
+          'rounded-xl border bg-card/50 p-4 transition-opacity',
+          isPrimary ? 'border-border/60 shadow-sm' : 'border-border/40',
+          (stale || !isValidPercentage) && 'opacity-50'
         )}
       >
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h4 className={cn("font-semibold", isPrimary ? "text-sm" : "text-xs")}>
-              {title}
-            </h4>
+            <h4 className={cn('font-semibold', isPrimary ? 'text-sm' : 'text-xs')}>{title}</h4>
             <p className="text-[10px] text-muted-foreground">{subtitle}</p>
           </div>
           {isValidPercentage ? (
             <div className="flex items-center gap-1.5">
-              <StatusIcon className={cn("w-3.5 h-3.5", status.color)} />
+              <StatusIcon className={cn('w-3.5 h-3.5', status.color)} />
               <span
                 className={cn(
-                  "font-mono font-bold",
+                  'font-mono font-bold',
                   status.color,
-                  isPrimary ? "text-base" : "text-sm"
+                  isPrimary ? 'text-base' : 'text-sm'
                 )}
               >
                 {Math.round(safePercentage)}%
@@ -185,11 +167,14 @@ export function ClaudeUsagePopover() {
             <span className="text-xs text-muted-foreground">N/A</span>
           )}
         </div>
-        <ProgressBar percentage={safePercentage} colorClass={isValidPercentage ? status.bg : "bg-muted-foreground/30"} />
+        <ProgressBar
+          percentage={safePercentage}
+          colorClass={isValidPercentage ? status.bg : 'bg-muted-foreground/30'}
+        />
         {resetText && (
           <div className="mt-2 flex justify-end">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              {title === "Session Usage" && <Clock className="w-3 h-3" />}
+              {title === 'Session Usage' && <Clock className="w-3 h-3" />}
               {resetText}
             </p>
           </div>
@@ -206,26 +191,21 @@ export function ClaudeUsagePopover() {
   const getProgressBarColor = (percentage: number) => {
     if (percentage >= 80) return 'bg-red-500';
     if (percentage >= 50) return 'bg-yellow-500';
-    return "bg-green-500";
+    return 'bg-green-500';
   };
 
   const trigger = (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-9 gap-3 bg-secondary border border-border px-3"
-    >
+    <Button variant="ghost" size="sm" className="h-9 gap-3 bg-secondary border border-border px-3">
       <span className="text-sm font-medium">Usage</span>
       {claudeUsage && (
-        <div className={cn(
-          "h-1.5 w-16 bg-muted-foreground/20 rounded-full overflow-hidden transition-opacity",
-          isStale && "opacity-60"
-        )}>
+        <div
+          className={cn(
+            'h-1.5 w-16 bg-muted-foreground/20 rounded-full overflow-hidden transition-opacity',
+            isStale && 'opacity-60'
+          )}
+        >
           <div
-            className={cn(
-              "h-full transition-all duration-500",
-              getProgressBarColor(maxPercentage)
-            )}
+            className={cn('h-full transition-all duration-500', getProgressBarColor(maxPercentage))}
             style={{ width: `${Math.min(maxPercentage, 100)}%` }}
           />
         </div>

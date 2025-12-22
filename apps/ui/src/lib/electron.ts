@@ -281,6 +281,11 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<WriteResult>;
   trashItem?: (filePath: string) => Promise<WriteResult>;
   getPath: (name: string) => Promise<string>;
+  openInEditor?: (
+    filePath: string,
+    line?: number,
+    column?: number
+  ) => Promise<{ success: boolean; error?: string }>;
   saveImageToTemp?: (
     data: string,
     filename: string,

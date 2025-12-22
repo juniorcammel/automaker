@@ -1,14 +1,14 @@
-import React, { memo } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { Feature, useAppStore } from "@/store/app-store";
-import { CardBadges, PriorityBadges } from "./card-badges";
-import { CardHeaderSection } from "./card-header";
-import { CardContentSections } from "./card-content-sections";
-import { AgentInfoPanel } from "./agent-info-panel";
-import { CardActions } from "./card-actions";
+import React, { memo } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Feature, useAppStore } from '@/store/app-store';
+import { CardBadges, PriorityBadges } from './card-badges';
+import { CardHeaderSection } from './card-header';
+import { CardContentSections } from './card-content-sections';
+import { AgentInfoPanel } from './agent-info-panel';
+import { CardActions } from './card-actions';
 
 interface KanbanCardProps {
   feature: Feature;
@@ -63,23 +63,14 @@ export const KanbanCard = memo(function KanbanCard({
 }: KanbanCardProps) {
   const { kanbanCardDetailLevel, useWorktrees } = useAppStore();
 
-  const showSteps =
-    kanbanCardDetailLevel === "standard" ||
-    kanbanCardDetailLevel === "detailed";
+  const showSteps = kanbanCardDetailLevel === 'standard' || kanbanCardDetailLevel === 'detailed';
 
   const isDraggable =
-    feature.status === "backlog" ||
-    feature.status === "waiting_approval" ||
-    feature.status === "verified" ||
-    (feature.status === "in_progress" && !isCurrentAutoTask);
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+    feature.status === 'backlog' ||
+    feature.status === 'waiting_approval' ||
+    feature.status === 'verified' ||
+    (feature.status === 'in_progress' && !isCurrentAutoTask);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: feature.id,
     disabled: !isDraggable,
   });
@@ -92,10 +83,10 @@ export const KanbanCard = memo(function KanbanCard({
 
   const borderStyle: React.CSSProperties = { ...style };
   if (!cardBorderEnabled) {
-    (borderStyle as Record<string, string>).borderWidth = "0px";
-    (borderStyle as Record<string, string>).borderColor = "transparent";
+    (borderStyle as Record<string, string>).borderWidth = '0px';
+    (borderStyle as Record<string, string>).borderColor = 'transparent';
   } else if (cardBorderOpacity !== 100) {
-    (borderStyle as Record<string, string>).borderWidth = "1px";
+    (borderStyle as Record<string, string>).borderWidth = '1px';
     (borderStyle as Record<string, string>).borderColor =
       `color-mix(in oklch, var(--border) ${cardBorderOpacity}%, transparent)`;
   }
@@ -105,28 +96,22 @@ export const KanbanCard = memo(function KanbanCard({
       ref={setNodeRef}
       style={isCurrentAutoTask ? style : borderStyle}
       className={cn(
-        "cursor-grab active:cursor-grabbing relative kanban-card-content select-none",
-        "transition-all duration-200 ease-out",
+        'cursor-grab active:cursor-grabbing relative kanban-card-content select-none',
+        'transition-all duration-200 ease-out',
         // Premium shadow system
-        "shadow-sm hover:shadow-md hover:shadow-black/10",
+        'shadow-sm hover:shadow-md hover:shadow-black/10',
         // Subtle lift on hover
-        "hover:-translate-y-0.5",
-        !isCurrentAutoTask &&
-          cardBorderEnabled &&
-          cardBorderOpacity === 100 &&
-          "border-border/50",
-        !isCurrentAutoTask &&
-          cardBorderEnabled &&
-          cardBorderOpacity !== 100 &&
-          "border",
-        !isDragging && "bg-transparent",
-        !glassmorphism && "backdrop-blur-[0px]!",
-        isDragging && "scale-105 shadow-xl shadow-black/20 rotate-1",
+        'hover:-translate-y-0.5',
+        !isCurrentAutoTask && cardBorderEnabled && cardBorderOpacity === 100 && 'border-border/50',
+        !isCurrentAutoTask && cardBorderEnabled && cardBorderOpacity !== 100 && 'border',
+        !isDragging && 'bg-transparent',
+        !glassmorphism && 'backdrop-blur-[0px]!',
+        isDragging && 'scale-105 shadow-xl shadow-black/20 rotate-1',
         // Error state - using CSS variable
         feature.error &&
           !isCurrentAutoTask &&
-          "border-[var(--status-error)] border-2 shadow-[var(--status-error-bg)] shadow-lg",
-        !isDraggable && "cursor-default"
+          'border-[var(--status-error)] border-2 shadow-[var(--status-error-bg)] shadow-lg',
+        !isDraggable && 'cursor-default'
       )}
       data-testid={`kanban-card-${feature.id}`}
       onDoubleClick={onEdit}
@@ -137,8 +122,8 @@ export const KanbanCard = memo(function KanbanCard({
       {!isDragging && (
         <div
           className={cn(
-            "absolute inset-0 rounded-xl bg-card -z-10",
-            glassmorphism && "backdrop-blur-sm"
+            'absolute inset-0 rounded-xl bg-card -z-10',
+            glassmorphism && 'backdrop-blur-sm'
           )}
           style={{ opacity: opacity / 100 }}
         />
@@ -149,9 +134,7 @@ export const KanbanCard = memo(function KanbanCard({
 
       {/* Category row */}
       <div className="px-3 pt-4">
-        <span className="text-[11px] text-muted-foreground/70 font-medium">
-          {feature.category}
-        </span>
+        <span className="text-[11px] text-muted-foreground/70 font-medium">{feature.category}</span>
       </div>
 
       {/* Priority and Manual Verification badges */}
@@ -169,11 +152,7 @@ export const KanbanCard = memo(function KanbanCard({
 
       <CardContent className="px-3 pt-0 pb-0">
         {/* Content Sections */}
-        <CardContentSections
-          feature={feature}
-          useWorktrees={useWorktrees}
-          showSteps={showSteps}
-        />
+        <CardContentSections feature={feature} useWorktrees={useWorktrees} showSteps={showSteps} />
 
         {/* Agent Info Panel */}
         <AgentInfoPanel
