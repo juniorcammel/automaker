@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useMemo } from 'react';
 import { Home, ArrowLeft, Pencil, ArrowRight, Search, Folder, File, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Kbd } from '@/components/ui/kbd';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -308,9 +309,7 @@ function PathInput({
                       >
                         <X className="w-3.5 h-3.5" />
                       </Button>
-                      <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] bg-muted rounded border border-border text-muted-foreground">
-                        ESC
-                      </kbd>
+                      <Kbd className="hidden py-0.5 sm:inline-block">ESC</Kbd>
                     </div>
                   </div>
                   <CommandList className="scrollbar-styled">
