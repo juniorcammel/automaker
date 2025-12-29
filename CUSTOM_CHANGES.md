@@ -113,7 +113,7 @@ This is a power-user feature that may not align with upstream's simpler UI philo
 
 ## MCP Server Bug Fixes (2025-12-29)
 
-Three critical bugs in MCP server management have been fixed:
+Four critical bugs in MCP server management have been fixed (Bug #4 is CRITICAL for web mode):
 
 ### Bug #2: HTTP Error Handling (FIXED)
 
@@ -299,6 +299,67 @@ const handleSaveGlobalJsonEdit = async () => {
 - ✅ Legacy object format (Claude Desktop) still works
 - ✅ Backend successfully finds servers after JSON edit
 - ✅ Build passes with no TypeScript errors
+
+---
+
+### Bug #4: Web Mode Cannot Save MCP Servers (FIXED) ⚠️ CRITICAL
+
+**Files Modified**: `apps/ui/src/hooks/use-settings-migration.ts` (line 197)
+
+**Problem**: The `syncSettingsToServer()` function had a check that immediately returned `false` for web mode:
+
+```typescript
+export async function syncSettingsToServer(): Promise<boolean> {
+  if (!isElectron()) return false; // ❌ BLOCKS WEB MODE
+  // ... rest of the code
+}
+```
+
+**Impact**:
+
+- **Web mode completely broken** for MCP server management
+- Could not add, edit, enable/disable, or delete any MCP servers in web mode
+- All operations showed "Failed to save MCP server to disk" error
+- Bug #1's validation made this visible (previously failed silently)
+
+**Root Cause**: Function was designed only for Electron, but MCP management code calls it in both modes since both have a backend server.
+
+**Changes**:
+
+Removed the Electron-only check to allow web mode to sync settings via HTTP backend:
+
+```typescript
+// BEFORE:
+export async function syncSettingsToServer(): Promise<boolean> {
+  if (!isElectron()) return false; // ❌ Returns false immediately in web mode
+
+  try {
+    const api = getHttpApiClient();
+    // ... rest of code
+  }
+}
+
+// AFTER:
+export async function syncSettingsToServer(): Promise<boolean> {
+  try {
+    const api = getHttpApiClient(); // ✅ Works in both Electron and web modes
+    // ... rest of code
+  }
+}
+```
+
+**Why This Works**:
+
+- Both Electron and web modes have a backend server on port 3008
+- `getHttpApiClient()` works the same way in both modes
+- The backend handles file writes regardless of frontend mode
+
+**Validation**:
+
+- ✅ Web mode can now add MCP servers successfully
+- ✅ Web mode can edit, enable/disable, and delete servers
+- ✅ Electron mode still works as before (no regression)
+- ✅ Both modes save to correct locations (./data vs AppData/Roaming)
 
 ---
 
