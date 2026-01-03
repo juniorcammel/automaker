@@ -122,7 +122,7 @@ describe('feature-loader.ts', () => {
         { name: 'feature-2', isDirectory: () => true } as any,
       ]);
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       vi.mocked(fs.readFile)
         .mockResolvedValueOnce(
@@ -183,7 +183,7 @@ describe('feature-loader.ts', () => {
         { name: 'feature-1', isDirectory: () => true } as any,
       ]);
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       vi.mocked(fs.readFile).mockResolvedValue('invalid json{');
 

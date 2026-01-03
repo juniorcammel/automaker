@@ -78,11 +78,12 @@ describe('logger.ts', () => {
 
       setLogLevel(LogLevel.ERROR);
       logger.warn('warn message 1');
-      expect(consoleSpy.warn).not.toHaveBeenCalled();
+      expect(consoleSpy.log).not.toHaveBeenCalled();
 
       setLogLevel(LogLevel.WARN);
       logger.warn('warn message 2');
-      expect(consoleSpy.warn).toHaveBeenCalledWith('WARN  [Test]', 'warn message 2');
+      // Note: warn uses console.log in Node.js implementation
+      expect(consoleSpy.log).toHaveBeenCalledWith('WARN  [Test]', 'warn message 2');
     });
 
     it('should log info when level is INFO or higher', () => {
