@@ -17,6 +17,8 @@ import type {
   IdeaCategory,
   IdeationSession,
   IdeationMessage,
+  IdeationPrompt,
+  PromptCategory,
   ProjectAnalysisResult,
   AnalysisSuggestion,
   StartSessionOptions,
@@ -46,6 +48,8 @@ export type {
   IdeaCategory,
   IdeationSession,
   IdeationMessage,
+  IdeationPrompt,
+  PromptCategory,
   ProjectAnalysisResult,
   AnalysisSuggestion,
   StartSessionOptions,
@@ -122,6 +126,14 @@ export interface IdeationAPI {
     projectPath: string,
     suggestion: AnalysisSuggestion
   ) => Promise<{ success: boolean; featureId?: string; error?: string }>;
+
+  // Get guided prompts (single source of truth from backend)
+  getPrompts: () => Promise<{
+    success: boolean;
+    prompts?: IdeationPrompt[];
+    categories?: PromptCategory[];
+    error?: string;
+  }>;
 
   // Event subscriptions
   onStream: (callback: (event: any) => void) => () => void;

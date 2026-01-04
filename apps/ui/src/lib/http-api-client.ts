@@ -1690,35 +1690,13 @@ export class HttpApiClient implements ElectronAPI {
     convertToFeature: (projectPath: string, ideaId: string, options?: ConvertToFeatureOptions) =>
       this.post('/api/ideation/convert', { projectPath, ideaId, ...options }),
 
-    addSuggestionToBoard: async (projectPath: string, suggestion: AnalysisSuggestion) => {
-      // Create a feature directly from the suggestion
-      const result = await this.post<{ success: boolean; feature?: Feature; error?: string }>(
-        '/api/features/create',
-        {
-          projectPath,
-          feature: {
-            title: suggestion.title,
-            description:
-              suggestion.description +
-              (suggestion.rationale ? `\n\n**Rationale:** ${suggestion.rationale}` : ''),
-            category:
-              suggestion.category === 'ux-ui'
-                ? 'enhancement'
-                : suggestion.category === 'dx'
-                  ? 'chore'
-                  : suggestion.category === 'technical'
-                    ? 'refactor'
-                    : 'feature',
-            status: 'backlog',
-          },
-        }
-      );
-      return {
-        success: result.success,
-        featureId: result.feature?.id,
-        error: result.error,
-      };
-    },
+    addSuggestionToBoard: (
+      projectPath: string,
+      suggestion: AnalysisSuggestion
+    ): Promise<{ success: boolean; featureId?: string; error?: string }> =>
+      this.post('/api/ideation/add-suggestion', { projectPath, suggestion }),
+
+    getPrompts: () => this.get('/api/ideation/prompts'),
 
     onStream: (callback: (event: any) => void): (() => void) => {
       return this.subscribeToEvent('ideation:stream', callback as EventCallback);

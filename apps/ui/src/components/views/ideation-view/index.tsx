@@ -9,26 +9,11 @@ import { useAppStore } from '@/store/app-store';
 import { PromptCategoryGrid } from './components/prompt-category-grid';
 import { PromptList } from './components/prompt-list';
 import { IdeationDashboard } from './components/ideation-dashboard';
-import { getCategoryById } from './data/guided-prompts';
+import { useGuidedPrompts } from '@/hooks/use-guided-prompts';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ChevronRight, Lightbulb } from 'lucide-react';
 import type { IdeaCategory } from '@automaker/types';
 import type { IdeationMode } from '@/store/ideation-store';
-
-// Get subtitle text based on current mode
-function getSubtitle(currentMode: IdeationMode, selectedCategory: IdeaCategory | null): string {
-  if (currentMode === 'dashboard') {
-    return 'Review and accept generated ideas';
-  }
-  if (currentMode === 'prompts') {
-    if (selectedCategory) {
-      const categoryInfo = getCategoryById(selectedCategory);
-      return `Select a prompt from ${categoryInfo?.name || 'category'}`;
-    }
-    return 'Select a category to generate ideas';
-  }
-  return '';
-}
 
 // Breadcrumb component - compact inline breadcrumbs
 function IdeationBreadcrumbs({
@@ -40,6 +25,7 @@ function IdeationBreadcrumbs({
   selectedCategory: IdeaCategory | null;
   onNavigate: (mode: IdeationMode, category?: IdeaCategory | null) => void;
 }) {
+  const { getCategoryById } = useGuidedPrompts();
   const categoryInfo = selectedCategory ? getCategoryById(selectedCategory) : null;
 
   // On dashboard, no breadcrumbs needed (it's the root)
@@ -88,8 +74,25 @@ function IdeationHeader({
   onGenerateIdeas: () => void;
   onBack: () => void;
 }) {
-  const subtitle = getSubtitle(currentMode, selectedCategory);
+  const { getCategoryById } = useGuidedPrompts();
   const showBackButton = currentMode === 'prompts';
+
+  // Get subtitle text based on current mode
+  const getSubtitle = (): string => {
+    if (currentMode === 'dashboard') {
+      return 'Review and accept generated ideas';
+    }
+    if (currentMode === 'prompts') {
+      if (selectedCategory) {
+        const categoryInfo = getCategoryById(selectedCategory);
+        return `Select a prompt from ${categoryInfo?.name || 'category'}`;
+      }
+      return 'Select a category to generate ideas';
+    }
+    return '';
+  };
+
+  const subtitle = getSubtitle();
 
   return (
     <div className="flex items-center justify-between p-4 border-b border-border bg-glass backdrop-blur-md">

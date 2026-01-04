@@ -3,11 +3,12 @@
  */
 
 import type { Request, Response } from 'express';
+import type { EventEmitter } from '../../../lib/events.js';
 import type { IdeationService } from '../../../services/ideation-service.js';
 import type { UpdateIdeaInput } from '@automaker/types';
 import { getErrorMessage, logError } from '../common.js';
 
-export function createIdeasUpdateHandler(ideationService: IdeationService) {
+export function createIdeasUpdateHandler(events: EventEmitter, ideationService: IdeationService) {
   return async (req: Request, res: Response): Promise<void> => {
     try {
       const { projectPath, ideaId, updates } = req.body as {
@@ -36,6 +37,13 @@ export function createIdeasUpdateHandler(ideationService: IdeationService) {
         res.status(404).json({ success: false, error: 'Idea not found' });
         return;
       }
+
+      // Emit idea updated event for frontend notification
+      events.emit('ideation:idea-updated', {
+        projectPath,
+        ideaId,
+        idea,
+      });
 
       res.json({ success: true, idea });
     } catch (error) {

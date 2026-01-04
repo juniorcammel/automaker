@@ -35,6 +35,10 @@ export type EventType =
   | 'ideation:analysis-progress'
   | 'ideation:analysis-complete'
   | 'ideation:analysis-error'
-  | 'ideation:suggestions';
+  | 'ideation:suggestions'
+  | 'ideation:idea-created'
+  | 'ideation:idea-updated'
+  | 'ideation:idea-deleted'
+  | 'ideation:idea-converted';
 
 export type EventCallback = (type: EventType, payload: unknown) => void;

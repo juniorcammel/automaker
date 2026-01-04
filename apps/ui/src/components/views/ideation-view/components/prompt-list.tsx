@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Lightbulb, Loader2, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { getPromptsByCategory } from '../data/guided-prompts';
+import { useGuidedPrompts } from '@/hooks/use-guided-prompts';
 import { useIdeationStore } from '@/store/ideation-store';
 import { useAppStore } from '@/store/app-store';
 import { getElectronAPI } from '@/lib/electron';
@@ -24,6 +24,11 @@ export function PromptList({ category, onBack }: PromptListProps) {
   const [loadingPromptId, setLoadingPromptId] = useState<string | null>(null);
   const [startedPrompts, setStartedPrompts] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
+  const {
+    getPromptsByCategory,
+    isLoading: isLoadingPrompts,
+    error: promptsError,
+  } = useGuidedPrompts();
 
   const prompts = getPromptsByCategory(category);
 
@@ -101,60 +106,73 @@ export function PromptList({ category, onBack }: PromptListProps) {
         </button>
 
         <div className="space-y-3">
-          {prompts.map((prompt) => {
-            const isLoading = loadingPromptId === prompt.id;
-            const isGenerating = generatingPromptIds.has(prompt.id);
-            const isStarted = startedPrompts.has(prompt.id);
-            const isDisabled = loadingPromptId !== null || isGenerating;
+          {isLoadingPrompts && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Loading prompts...</span>
+            </div>
+          )}
+          {promptsError && (
+            <div className="text-center py-8 text-destructive">
+              <p>Failed to load prompts: {promptsError}</p>
+            </div>
+          )}
+          {!isLoadingPrompts &&
+            !promptsError &&
+            prompts.map((prompt) => {
+              const isLoading = loadingPromptId === prompt.id;
+              const isGenerating = generatingPromptIds.has(prompt.id);
+              const isStarted = startedPrompts.has(prompt.id);
+              const isDisabled = loadingPromptId !== null || isGenerating;
 
-            return (
-              <Card
-                key={prompt.id}
-                className={`transition-all ${
-                  isDisabled
-                    ? 'opacity-60 cursor-not-allowed'
-                    : 'cursor-pointer hover:border-primary hover:shadow-md'
-                } ${isLoading || isGenerating ? 'border-blue-500 ring-1 ring-blue-500' : ''} ${
-                  isStarted && !isGenerating ? 'border-green-500/50' : ''
-                }`}
-                onClick={() => !isDisabled && handleSelectPrompt(prompt)}
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`p-2 rounded-lg mt-0.5 ${
-                        isLoading || isGenerating
-                          ? 'bg-blue-500/10'
-                          : isStarted
-                            ? 'bg-green-500/10'
-                            : 'bg-primary/10'
-                      }`}
-                    >
-                      {isLoading || isGenerating ? (
-                        <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                      ) : isStarted ? (
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Lightbulb className="w-4 h-4 text-primary" />
-                      )}
+              return (
+                <Card
+                  key={prompt.id}
+                  className={`transition-all ${
+                    isDisabled
+                      ? 'opacity-60 cursor-not-allowed'
+                      : 'cursor-pointer hover:border-primary hover:shadow-md'
+                  } ${isLoading || isGenerating ? 'border-blue-500 ring-1 ring-blue-500' : ''} ${
+                    isStarted && !isGenerating ? 'border-green-500/50' : ''
+                  }`}
+                  onClick={() => !isDisabled && handleSelectPrompt(prompt)}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`p-2 rounded-lg mt-0.5 ${
+                          isLoading || isGenerating
+                            ? 'bg-blue-500/10'
+                            : isStarted
+                              ? 'bg-green-500/10'
+                              : 'bg-primary/10'
+                        }`}
+                      >
+                        {isLoading || isGenerating ? (
+                          <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                        ) : isStarted ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Lightbulb className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold">{prompt.title}</h3>
+                        <p className="text-muted-foreground text-sm mt-1">{prompt.description}</p>
+                        {(isLoading || isGenerating) && (
+                          <p className="text-blue-500 text-sm mt-2">Generating in dashboard...</p>
+                        )}
+                        {isStarted && !isGenerating && (
+                          <p className="text-green-500 text-sm mt-2">
+                            Already generated - check dashboard
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold">{prompt.title}</h3>
-                      <p className="text-muted-foreground text-sm mt-1">{prompt.description}</p>
-                      {(isLoading || isGenerating) && (
-                        <p className="text-blue-500 text-sm mt-2">Generating in dashboard...</p>
-                      )}
-                      {isStarted && !isGenerating && (
-                        <p className="text-green-500 text-sm mt-2">
-                          Already generated - check dashboard
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardContent>
+                </Card>
+              );
+            })}
         </div>
       </div>
     </div>

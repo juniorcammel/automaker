@@ -26,7 +26,7 @@ export function createPromptsByCategoryHandler(ideationService: IdeationService)
     try {
       const { category } = req.params as { category: string };
 
-      const validCategories: IdeaCategory[] = ['feature', 'ux-ui', 'dx', 'growth', 'technical'];
+      const validCategories = ideationService.getPromptCategories().map((c) => c.id);
       if (!validCategories.includes(category as IdeaCategory)) {
         res.status(400).json({ success: false, error: 'Invalid category' });
         return;

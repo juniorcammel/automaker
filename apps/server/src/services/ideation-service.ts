@@ -39,6 +39,7 @@ import { ProviderFactory } from '../providers/provider-factory.js';
 import type { SettingsService } from './settings-service.js';
 import type { FeatureLoader } from './feature-loader.js';
 import { createChatOptions, validateWorkingDirectory } from '../lib/sdk-options.js';
+import { resolveModelString } from '@automaker/model-resolver';
 
 const logger = createLogger('IdeationService');
 
@@ -200,20 +201,22 @@ export class IdeationService {
         existingWorkContext
       );
 
+      // Resolve model alias to canonical identifier
+      const modelId = resolveModelString(options?.model ?? 'sonnet');
+
       // Create SDK options
       const sdkOptions = createChatOptions({
         cwd: projectPath,
-        model: options?.model || 'sonnet',
+        model: modelId,
         systemPrompt,
         abortController: activeSession.abortController!,
       });
 
-      const effectiveModel = sdkOptions.model!;
-      const provider = ProviderFactory.getProviderForModel(effectiveModel);
+      const provider = ProviderFactory.getProviderForModel(modelId);
 
       const executeOptions: ExecuteOptions = {
         prompt: message,
-        model: effectiveModel,
+        model: modelId,
         cwd: projectPath,
         systemPrompt: sdkOptions.systemPrompt,
         maxTurns: 1, // Single turn for ideation
@@ -645,20 +648,22 @@ export class IdeationService {
         existingWorkContext
       );
 
+      // Resolve model alias to canonical identifier
+      const modelId = resolveModelString('sonnet');
+
       // Create SDK options
       const sdkOptions = createChatOptions({
         cwd: projectPath,
-        model: 'sonnet',
+        model: modelId,
         systemPrompt,
         abortController: new AbortController(),
       });
 
-      const effectiveModel = sdkOptions.model!;
-      const provider = ProviderFactory.getProviderForModel(effectiveModel);
+      const provider = ProviderFactory.getProviderForModel(modelId);
 
       const executeOptions: ExecuteOptions = {
         prompt: prompt.prompt,
-        model: effectiveModel,
+        model: modelId,
         cwd: projectPath,
         systemPrompt: sdkOptions.systemPrompt,
         maxTurns: 1,
@@ -892,6 +897,30 @@ ${contextSection}${existingWorkSection}`;
         icon: 'Cpu',
         description: 'Architecture and infrastructure',
       },
+      {
+        id: 'security',
+        name: 'Security',
+        icon: 'Shield',
+        description: 'Security improvements and vulnerability fixes',
+      },
+      {
+        id: 'performance',
+        name: 'Performance',
+        icon: 'Gauge',
+        description: 'Performance optimization and speed improvements',
+      },
+      {
+        id: 'accessibility',
+        name: 'Accessibility',
+        icon: 'Accessibility',
+        description: 'Accessibility features and inclusive design',
+      },
+      {
+        id: 'analytics',
+        name: 'Analytics',
+        icon: 'BarChart',
+        description: 'Analytics, monitoring, and insights features',
+      },
     ];
   }
 
@@ -905,7 +934,8 @@ ${contextSection}${existingWorkSection}`;
 
   /**
    * Get all guided prompts
-   * NOTE: Keep in sync with apps/ui/src/components/views/ideation-view/data/guided-prompts.ts
+   * This is the single source of truth for guided prompts data.
+   * Frontend fetches this data via /api/ideation/prompts endpoint.
    */
   getAllPrompts(): IdeationPrompt[] {
     return [
@@ -1629,7 +1659,20 @@ Focus on practical, implementable suggestions that would genuinely improve the p
     return `${summary}. Found ${suggestions.length} improvement opportunities${highPriority > 0 ? ` (${highPriority} high priority)` : ''}.`;
   }
 
+  /**
+   * Map idea category to feature category
+   * Used internally for idea-to-feature conversion
+   */
   private mapIdeaCategoryToFeatureCategory(category: IdeaCategory): string {
+    return this.mapSuggestionCategoryToFeatureCategory(category);
+  }
+
+  /**
+   * Map suggestion/idea category to feature category
+   * This is the single source of truth for category mapping.
+   * Used by both idea-to-feature conversion and suggestion-to-feature conversion.
+   */
+  mapSuggestionCategoryToFeatureCategory(category: IdeaCategory): string {
     const mapping: Record<IdeaCategory, string> = {
       feature: 'ui',
       'ux-ui': 'enhancement',

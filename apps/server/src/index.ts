@@ -218,7 +218,7 @@ app.use('/api/context', createContextRoutes(settingsService));
 app.use('/api/backlog-plan', createBacklogPlanRoutes(events, settingsService));
 app.use('/api/mcp', createMCPRoutes(mcpTestService));
 app.use('/api/pipeline', createPipelineRoutes(pipelineService));
-app.use('/api/ideation', createIdeationRoutes(ideationService, featureLoader));
+app.use('/api/ideation', createIdeationRoutes(events, ideationService, featureLoader));
 
 // Create HTTP server
 const server = createServer(app);

@@ -5,6 +5,7 @@
 import type { Request, Response } from 'express';
 import type { IdeationService } from '../../../services/ideation-service.js';
 import { createLogger } from '@automaker/utils';
+import { getErrorMessage, logError } from '../common.js';
 
 const logger = createLogger('ideation:suggestions-generate');
 
@@ -45,10 +46,10 @@ export function createSuggestionsGenerateHandler(ideationService: IdeationServic
         suggestions,
       });
     } catch (error) {
-      logger.error('Failed to generate suggestions:', error);
+      logError(error, 'Failed to generate suggestions');
       res.status(500).json({
         success: false,
-        error: (error as Error).message,
+        error: getErrorMessage(error),
       });
     }
   };

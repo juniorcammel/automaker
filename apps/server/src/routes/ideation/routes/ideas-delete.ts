@@ -3,10 +3,11 @@
  */
 
 import type { Request, Response } from 'express';
+import type { EventEmitter } from '../../../lib/events.js';
 import type { IdeationService } from '../../../services/ideation-service.js';
 import { getErrorMessage, logError } from '../common.js';
 
-export function createIdeasDeleteHandler(ideationService: IdeationService) {
+export function createIdeasDeleteHandler(events: EventEmitter, ideationService: IdeationService) {
   return async (req: Request, res: Response): Promise<void> => {
     try {
       const { projectPath, ideaId } = req.body as {
@@ -25,6 +26,13 @@ export function createIdeasDeleteHandler(ideationService: IdeationService) {
       }
 
       await ideationService.deleteIdea(projectPath, ideaId);
+
+      // Emit idea deleted event for frontend notification
+      events.emit('ideation:idea-deleted', {
+        projectPath,
+        ideaId,
+      });
+
       res.json({ success: true });
     } catch (error) {
       logError(error, 'Delete idea failed');

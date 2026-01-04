@@ -3,12 +3,14 @@
  */
 
 import type { Request, Response } from 'express';
+import type { EventEmitter } from '../../../lib/events.js';
 import type { IdeationService } from '../../../services/ideation-service.js';
 import type { FeatureLoader } from '../../../services/feature-loader.js';
 import type { ConvertToFeatureOptions } from '@automaker/types';
 import { getErrorMessage, logError } from '../common.js';
 
 export function createConvertHandler(
+  events: EventEmitter,
   ideationService: IdeationService,
   featureLoader: FeatureLoader
 ) {
@@ -49,7 +51,21 @@ export function createConvertHandler(
       // Delete the idea unless keepIdea is explicitly true
       if (!keepIdea) {
         await ideationService.deleteIdea(projectPath, ideaId);
+
+        // Emit idea deleted event
+        events.emit('ideation:idea-deleted', {
+          projectPath,
+          ideaId,
+        });
       }
+
+      // Emit idea converted event to notify frontend
+      events.emit('ideation:idea-converted', {
+        projectPath,
+        ideaId,
+        featureId: feature.id,
+        keepIdea: !!keepIdea,
+      });
 
       // Return featureId as expected by the frontend API interface
       res.json({ success: true, featureId: feature.id });

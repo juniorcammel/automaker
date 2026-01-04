@@ -3,6 +3,7 @@
  */
 
 import { Router } from 'express';
+import type { EventEmitter } from '../../lib/events.js';
 import { validatePathParams } from '../../middleware/validate-paths.js';
 import type { IdeationService } from '../../services/ideation-service.js';
 import type { FeatureLoader } from '../../services/feature-loader.js';
@@ -19,10 +20,12 @@ import { createIdeasUpdateHandler } from './routes/ideas-update.js';
 import { createIdeasDeleteHandler } from './routes/ideas-delete.js';
 import { createAnalyzeHandler, createGetAnalysisHandler } from './routes/analyze.js';
 import { createConvertHandler } from './routes/convert.js';
+import { createAddSuggestionHandler } from './routes/add-suggestion.js';
 import { createPromptsHandler, createPromptsByCategoryHandler } from './routes/prompts.js';
 import { createSuggestionsGenerateHandler } from './routes/suggestions-generate.js';
 
 export function createIdeationRoutes(
+  events: EventEmitter,
   ideationService: IdeationService,
   featureLoader: FeatureLoader
 ): Router {
@@ -35,7 +38,7 @@ export function createIdeationRoutes(
     createSessionStartHandler(ideationService)
   );
   router.post('/session/message', createSessionMessageHandler(ideationService));
-  router.post('/session/stop', createSessionStopHandler(ideationService));
+  router.post('/session/stop', createSessionStopHandler(events, ideationService));
   router.post(
     '/session/get',
     validatePathParams('projectPath'),
@@ -51,7 +54,7 @@ export function createIdeationRoutes(
   router.post(
     '/ideas/create',
     validatePathParams('projectPath'),
-    createIdeasCreateHandler(ideationService)
+    createIdeasCreateHandler(events, ideationService)
   );
   router.post(
     '/ideas/get',
@@ -61,12 +64,12 @@ export function createIdeationRoutes(
   router.post(
     '/ideas/update',
     validatePathParams('projectPath'),
-    createIdeasUpdateHandler(ideationService)
+    createIdeasUpdateHandler(events, ideationService)
   );
   router.post(
     '/ideas/delete',
     validatePathParams('projectPath'),
-    createIdeasDeleteHandler(ideationService)
+    createIdeasDeleteHandler(events, ideationService)
   );
 
   // Project analysis
@@ -81,7 +84,14 @@ export function createIdeationRoutes(
   router.post(
     '/convert',
     validatePathParams('projectPath'),
-    createConvertHandler(ideationService, featureLoader)
+    createConvertHandler(events, ideationService, featureLoader)
+  );
+
+  // Add suggestion to board as a feature
+  router.post(
+    '/add-suggestion',
+    validatePathParams('projectPath'),
+    createAddSuggestionHandler(ideationService, featureLoader)
   );
 
   // Guided prompts (no validation needed - static data)

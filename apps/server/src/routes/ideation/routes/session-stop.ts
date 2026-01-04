@@ -3,13 +3,17 @@
  */
 
 import type { Request, Response } from 'express';
+import type { EventEmitter } from '../../../lib/events.js';
 import type { IdeationService } from '../../../services/ideation-service.js';
 import { getErrorMessage, logError } from '../common.js';
 
-export function createSessionStopHandler(ideationService: IdeationService) {
+export function createSessionStopHandler(events: EventEmitter, ideationService: IdeationService) {
   return async (req: Request, res: Response): Promise<void> => {
     try {
-      const { sessionId } = req.body as { sessionId: string };
+      const { sessionId, projectPath } = req.body as {
+        sessionId: string;
+        projectPath?: string;
+      };
 
       if (!sessionId) {
         res.status(400).json({ success: false, error: 'sessionId is required' });
@@ -17,6 +21,15 @@ export function createSessionStopHandler(ideationService: IdeationService) {
       }
 
       await ideationService.stopSession(sessionId);
+
+      // Emit session stopped event for frontend notification
+      // Note: The service also emits 'ideation:session-ended' internally,
+      // but we emit here as well for route-level consistency with other routes
+      events.emit('ideation:session-ended', {
+        sessionId,
+        projectPath,
+      });
+
       res.json({ success: true });
     } catch (error) {
       logError(error, 'Stop session failed');
