@@ -31,6 +31,7 @@ import type {
 import {
   CODEX_MODEL_MAP,
   supportsReasoningEffort,
+  validateBareModelId,
   type CodexApprovalPolicy,
   type CodexSandboxMode,
   type CodexAuthStatus,
@@ -61,6 +62,7 @@ const CODEX_ADD_DIR_FLAG = '--add-dir';
 const CODEX_SKIP_GIT_REPO_CHECK_FLAG = '--skip-git-repo-check';
 const CODEX_RESUME_FLAG = 'resume';
 const CODEX_REASONING_EFFORT_KEY = 'reasoning_effort';
+const CODEX_YOLO_FLAG = '--dangerously-bypass-approvals-and-sandbox';
 const OPENAI_API_KEY_ENV = 'OPENAI_API_KEY';
 const CODEX_EXECUTION_MODE_CLI = 'cli';
 const CODEX_EXECUTION_MODE_SDK = 'sdk';
@@ -662,6 +664,10 @@ export class CodexProvider extends BaseProvider {
   }
 
   async *executeQuery(options: ExecuteOptions): AsyncGenerator<ProviderMessage> {
+    // Validate that model doesn't have a provider prefix
+    // AgentService should strip prefixes before passing to providers
+    validateBareModelId(options.model, 'CodexProvider');
+
     try {
       const mcpServers = options.mcpServers ?? {};
       const hasMcpServers = Object.keys(mcpServers).length > 0;
@@ -759,18 +765,15 @@ export class CodexProvider extends BaseProvider {
         }
       }
 
+      // Model is already bare (no prefix) - validated by executeQuery
       const args = [
         CODEX_EXEC_SUBCOMMAND,
+        CODEX_YOLO_FLAG,
         CODEX_SKIP_GIT_REPO_CHECK_FLAG,
         ...preExecArgs,
         CODEX_MODEL_FLAG,
         options.model,
         CODEX_JSON_FLAG,
-        CODEX_SANDBOX_FLAG,
-        resolvedSandboxMode,
-        ...(outputSchemaPath ? [CODEX_OUTPUT_SCHEMA_FLAG, outputSchemaPath] : []),
-        ...(imagePaths.length > 0 ? [CODEX_IMAGE_FLAG, imagePaths.join(',')] : []),
-        ...configOverrides,
         '-', // Read prompt from stdin to avoid shell escaping issues
       ];
 

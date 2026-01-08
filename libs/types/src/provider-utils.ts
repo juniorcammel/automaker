@@ -8,20 +8,20 @@
 
 import type { ModelProvider } from './settings.js';
 import { CURSOR_MODEL_MAP, type CursorModelId } from './cursor-models.js';
-import { CLAUDE_MODEL_MAP, CODEX_MODEL_MAP, type CodexModelId } from './model.js';
+import { CLAUDE_MODEL_MAP, CODEX_MODEL_MAP } from './model.js';
+import { CODEX_MODEL_CONFIG_MAP, type CodexModelId } from './codex-models.js';
 
 /** Provider prefix constants */
 export const PROVIDER_PREFIXES = {
   cursor: 'cursor-',
   codex: 'codex-',
-  // Add new provider prefixes here
 } as const;
 
 /**
  * Check if a model string represents a Cursor model
  *
  * @param model - Model string to check (e.g., "cursor-composer-1" or "composer-1")
- * @returns true if the model is a Cursor model
+ * @returns true if the model is a Cursor model (excluding Codex-specific models)
  */
 export function isCursorModel(model: string | undefined | null): boolean {
   if (!model || typeof model !== 'string') return false;
@@ -31,8 +31,13 @@ export function isCursorModel(model: string | undefined | null): boolean {
     return true;
   }
 
-  // Check if it's a bare Cursor model ID
-  return model in CURSOR_MODEL_MAP;
+  // Check if it's a bare Cursor model ID (excluding Codex-specific models)
+  // Codex-specific models should always route to Codex provider, not Cursor
+  if (model in CURSOR_MODEL_MAP) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -67,7 +72,7 @@ export function isCodexModel(model: string | undefined | null): boolean {
     return true;
   }
 
-  // Check if it's a gpt- model
+  // Check if it's a gpt- model (bare gpt models go to Codex, not Cursor)
   if (model.startsWith('gpt-')) {
     return true;
   }
@@ -78,8 +83,7 @@ export function isCodexModel(model: string | undefined | null): boolean {
   }
 
   // Check if it's in the CODEX_MODEL_MAP
-  const modelValues = Object.values(CODEX_MODEL_MAP);
-  return modelValues.includes(model as CodexModelId);
+  return model in CODEX_MODEL_MAP;
 }
 
 /**
@@ -178,9 +182,8 @@ export function normalizeModelString(model: string | undefined | null): string {
   }
 
   // For Codex, bare gpt-* and o-series models are valid canonical forms
-  // Only add prefix if it's in CODEX_MODEL_MAP but doesn't have gpt-/o prefix
-  const codexModelValues = Object.values(CODEX_MODEL_MAP);
-  if (codexModelValues.includes(model as CodexModelId)) {
+  // Check if it's in the CODEX_MODEL_MAP
+  if (model in CODEX_MODEL_MAP) {
     // If it already starts with gpt- or o, it's canonical
     if (model.startsWith('gpt-') || /^o\d/.test(model)) {
       return model;
@@ -192,4 +195,38 @@ export function normalizeModelString(model: string | undefined | null): string {
   }
 
   return model;
+}
+
+/**
+ * Validate that a model ID does not contain a provider prefix
+ *
+ * Providers should receive bare model IDs (e.g., "gpt-5.1-codex-max", "composer-1")
+ * without provider prefixes (e.g., NOT "codex-gpt-5.1-codex-max", NOT "cursor-composer-1").
+ *
+ * This validation ensures the ProviderFactory properly stripped prefixes before
+ * passing models to providers.
+ *
+ * @param model - Model ID to validate
+ * @param providerName - Name of the provider for error messages
+ * @throws Error if model contains a provider prefix
+ *
+ * @example
+ * validateBareModelId("gpt-5.1-codex-max", "CodexProvider");  // ✅ OK
+ * validateBareModelId("codex-gpt-5.1-codex-max", "CodexProvider");  // ❌ Throws error
+ */
+export function validateBareModelId(model: string, providerName: string): void {
+  if (!model || typeof model !== 'string') {
+    throw new Error(`[${providerName}] Invalid model ID: expected string, got ${typeof model}`);
+  }
+
+  for (const [provider, prefix] of Object.entries(PROVIDER_PREFIXES)) {
+    if (model.startsWith(prefix)) {
+      throw new Error(
+        `[${providerName}] Model ID should not contain provider prefix '${prefix}'. ` +
+          `Got: '${model}'. ` +
+          `This is likely a bug in ProviderFactory - it should strip the '${provider}' prefix ` +
+          `before passing the model to the provider.`
+      );
+    }
+  }
 }
