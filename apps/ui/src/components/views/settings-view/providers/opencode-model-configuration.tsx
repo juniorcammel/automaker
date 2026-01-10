@@ -8,11 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Terminal, Cloud, Cpu, Brain, Sparkles, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OpencodeModelId, OpencodeProvider, OpencodeModelConfig } from '@automaker/types';
 import { OPENCODE_MODELS, OPENCODE_MODEL_CONFIG_MAP } from '@automaker/types';
-import { AnthropicIcon } from '@/components/ui/provider-icon';
+import {
+  OpenCodeIcon,
+  DeepSeekIcon,
+  QwenIcon,
+  NovaIcon,
+  AnthropicIcon,
+  MistralIcon,
+  MetaIcon,
+} from '@/components/ui/provider-icon';
 import type { ComponentType } from 'react';
 
 interface OpencodeModelConfigurationProps {
@@ -29,21 +36,21 @@ interface OpencodeModelConfigurationProps {
 function getProviderIcon(provider: OpencodeProvider): ComponentType<{ className?: string }> {
   switch (provider) {
     case 'opencode':
-      return Terminal;
+      return OpenCodeIcon;
     case 'amazon-bedrock-anthropic':
       return AnthropicIcon;
     case 'amazon-bedrock-deepseek':
-      return Brain;
+      return DeepSeekIcon;
     case 'amazon-bedrock-amazon':
-      return Cloud;
+      return NovaIcon;
     case 'amazon-bedrock-meta':
-      return Cpu;
+      return MetaIcon;
     case 'amazon-bedrock-mistral':
-      return Sparkles;
+      return MistralIcon;
     case 'amazon-bedrock-qwen':
-      return Zap;
+      return QwenIcon;
     default:
-      return Terminal;
+      return OpenCodeIcon;
   }
 }
 
@@ -113,7 +120,7 @@ export function OpencodeModelConfiguration({
       <div className="p-6 border-b border-border/50 bg-gradient-to-r from-transparent via-accent/5 to-transparent">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center border border-brand-500/20">
-            <Terminal className="w-5 h-5 text-brand-500" />
+            <OpenCodeIcon className="w-5 h-5 text-brand-500" />
           </div>
           <h2 className="text-lg font-semibold text-foreground tracking-tight">
             Model Configuration
