@@ -161,12 +161,14 @@ export function BoardView() {
     followUpPrompt,
     followUpImagePaths,
     followUpPreviewMap,
+    followUpPromptHistory,
     setShowFollowUpDialog,
     setFollowUpFeature,
     setFollowUpPrompt,
     setFollowUpImagePaths,
     setFollowUpPreviewMap,
     handleFollowUpDialogChange,
+    addToPromptHistory,
   } = useFollowUpState();
 
   // Selection mode hook for mass editing
@@ -1422,6 +1424,8 @@ export function BoardView() {
         onPreviewMapChange={setFollowUpPreviewMap}
         onSend={handleSendFollowUp}
         isMaximized={isMaximized}
+        promptHistory={followUpPromptHistory}
+        onHistoryAdd={addToPromptHistory}
       />
 
       {/* Backlog Plan Dialog */}

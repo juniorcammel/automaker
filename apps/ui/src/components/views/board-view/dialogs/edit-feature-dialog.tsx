@@ -21,18 +21,8 @@ import {
   FeatureTextFilePath as DescriptionTextFilePath,
   ImagePreviewMap,
 } from '@/components/ui/description-image-dropzone';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import {
-  Sparkles,
-  ChevronDown,
-  ChevronRight,
-  GitBranch,
-  History,
-  Cpu,
-  FolderKanban,
-} from 'lucide-react';
+import { GitBranch, Cpu, FolderKanban } from 'lucide-react';
 import { toast } from 'sonner';
-import { getElectronAPI } from '@/lib/electron';
 import { cn, modelSupportsThinking } from '@/lib/utils';
 import { Feature, ModelAlias, ThinkingLevel, useAppStore, PlanningMode } from '@/store/app-store';
 import type { ReasoningEffort, PhaseModelEntry, DescriptionHistoryEntry } from '@automaker/types';
@@ -41,17 +31,11 @@ import {
   PrioritySelector,
   WorkModeSelector,
   PlanningModeSelect,
+  EnhanceWithAI,
+  EnhancementHistoryButton,
 } from '../shared';
 import type { WorkMode } from '../shared';
 import { PhaseModelSelector } from '@/components/views/settings-view/model-defaults/phase-model-selector';
-import { ModelOverrideTrigger, useModelOverride } from '@/components/shared';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DependencyTreeDialog } from './dependency-tree-dialog';
 import { isClaudeModel, supportsReasoningEffort } from '@automaker/types';
@@ -110,11 +94,6 @@ export function EditFeatureDialog({
   const [editFeaturePreviewMap, setEditFeaturePreviewMap] = useState<ImagePreviewMap>(
     () => new Map()
   );
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhancementMode, setEnhancementMode] = useState<
-    'improve' | 'technical' | 'simplify' | 'acceptance' | 'ux-reviewer'
-  >('improve');
-  const [enhanceOpen, setEnhanceOpen] = useState(false);
   const [showDependencyTree, setShowDependencyTree] = useState(false);
   const [planningMode, setPlanningMode] = useState<PlanningMode>(feature?.planningMode ?? 'skip');
   const [requirePlanApproval, setRequirePlanApproval] = useState(
@@ -137,11 +116,6 @@ export function EditFeatureDialog({
   >(null);
   // Track the original description when the dialog opened for comparison
   const [originalDescription, setOriginalDescription] = useState(feature?.description ?? '');
-  // Track if history dropdown is open
-  const [showHistory, setShowHistory] = useState(false);
-
-  // Enhancement model override
-  const enhancementOverride = useModelOverride({ phase: 'enhancementModel' });
 
   useEffect(() => {
     setEditingFeature(feature);
@@ -153,8 +127,6 @@ export function EditFeatureDialog({
       // Reset history tracking state
       setOriginalDescription(feature.description ?? '');
       setDescriptionChangeSource(null);
-      setShowHistory(false);
-      setEnhanceOpen(false);
       // Reset model entry
       setModelEntry({
         model: (feature.model as ModelAlias) || 'opus',
@@ -164,7 +136,6 @@ export function EditFeatureDialog({
     } else {
       setEditFeaturePreviewMap(new Map());
       setDescriptionChangeSource(null);
-      setShowHistory(false);
     }
   }, [feature]);
 
@@ -237,36 +208,6 @@ export function EditFeatureDialog({
     }
   };
 
-  const handleEnhanceDescription = async () => {
-    if (!editingFeature?.description.trim() || isEnhancing) return;
-
-    setIsEnhancing(true);
-    try {
-      const api = getElectronAPI();
-      const result = await api.enhancePrompt?.enhance(
-        editingFeature.description,
-        enhancementMode,
-        enhancementOverride.effectiveModel, // API accepts string, extract from PhaseModelEntry
-        enhancementOverride.effectiveModelEntry.thinkingLevel // Pass thinking level
-      );
-
-      if (result?.success && result.enhancedText) {
-        const enhancedText = result.enhancedText;
-        setEditingFeature((prev) => (prev ? { ...prev, description: enhancedText } : prev));
-        // Track that this change was from enhancement
-        setDescriptionChangeSource({ source: 'enhance', mode: enhancementMode });
-        toast.success('Description enhanced!');
-      } else {
-        toast.error(result?.error || 'Failed to enhance description');
-      }
-    } catch (error) {
-      logger.error('Enhancement failed:', error);
-      toast.error('Failed to enhance description');
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
   if (!editingFeature) {
     return null;
   }
@@ -306,92 +247,17 @@ export function EditFeatureDialog({
                 <Label htmlFor="edit-description">Description</Label>
                 {/* Version History Button */}
                 {feature?.descriptionHistory && feature.descriptionHistory.length > 0 && (
-                  <Popover open={showHistory} onOpenChange={setShowHistory}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 gap-1.5 text-xs text-muted-foreground"
-                      >
-                        <History className="w-3.5 h-3.5" />
-                        History ({feature.descriptionHistory.length})
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="end">
-                      <div className="p-3 border-b">
-                        <h4 className="font-medium text-sm">Version History</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Click a version to restore it
-                        </p>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto p-2 space-y-1">
-                        {[...(feature.descriptionHistory || [])]
-                          .reverse()
-                          .map((entry: DescriptionHistoryEntry, index: number) => {
-                            const isCurrentVersion =
-                              entry.description === editingFeature.description;
-                            const date = new Date(entry.timestamp);
-                            const formattedDate = date.toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            });
-                            const getEnhancementModeLabel = (mode?: string) => {
-                              const labels: Record<string, string> = {
-                                improve: 'Improve Clarity',
-                                technical: 'Add Technical Details',
-                                simplify: 'Simplify',
-                                acceptance: 'Add Acceptance Criteria',
-                                'ux-reviewer': 'User Experience',
-                              };
-                              return labels[mode || 'improve'] || mode || 'improve';
-                            };
-                            const sourceLabel =
-                              entry.source === 'initial'
-                                ? 'Original'
-                                : entry.source === 'enhance'
-                                  ? `Enhanced (${getEnhancementModeLabel(entry.enhancementMode)})`
-                                  : 'Edited';
-
-                            return (
-                              <button
-                                key={`${entry.timestamp}-${index}`}
-                                onClick={() => {
-                                  setEditingFeature((prev) =>
-                                    prev ? { ...prev, description: entry.description } : prev
-                                  );
-                                  // Mark as edit since user is restoring from history
-                                  setDescriptionChangeSource('edit');
-                                  setShowHistory(false);
-                                  toast.success('Description restored from history');
-                                }}
-                                className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors ${
-                                  isCurrentVersion ? 'bg-muted/50 border border-primary/20' : ''
-                                }`}
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs font-medium">{sourceLabel}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {formattedDate}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {entry.description.slice(0, 100)}
-                                  {entry.description.length > 100 ? '...' : ''}
-                                </p>
-                                {isCurrentVersion && (
-                                  <span className="text-xs text-primary font-medium mt-1 block">
-                                    Current version
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  <EnhancementHistoryButton
+                    history={feature.descriptionHistory}
+                    currentValue={editingFeature.description}
+                    onRestore={(description) => {
+                      setEditingFeature((prev) => (prev ? { ...prev, description } : prev));
+                      setDescriptionChangeSource('edit');
+                    }}
+                    valueAccessor={(entry) => entry.description}
+                    title="Version History"
+                    restoreMessage="Description restored from history"
+                  />
                 )}
               </div>
               <DescriptionImageDropZone
@@ -443,75 +309,14 @@ export function EditFeatureDialog({
               />
             </div>
 
-            {/* Collapsible Enhancement Section */}
-            <Collapsible open={enhanceOpen} onOpenChange={setEnhanceOpen}>
-              <CollapsibleTrigger asChild>
-                <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-1">
-                  {enhanceOpen ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                  <Sparkles className="w-4 h-4" />
-                  <span>Enhance with AI</span>
-                </button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3">
-                <div className="flex flex-wrap items-center gap-2 pl-6">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">
-                        {enhancementMode === 'improve' && 'Improve Clarity'}
-                        {enhancementMode === 'technical' && 'Add Technical Details'}
-                        {enhancementMode === 'simplify' && 'Simplify'}
-                        {enhancementMode === 'acceptance' && 'Add Acceptance Criteria'}
-                        {enhancementMode === 'ux-reviewer' && 'User Experience'}
-                        <ChevronDown className="w-3 h-3 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={() => setEnhancementMode('improve')}>
-                        Improve Clarity
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEnhancementMode('technical')}>
-                        Add Technical Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEnhancementMode('simplify')}>
-                        Simplify
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEnhancementMode('acceptance')}>
-                        Add Acceptance Criteria
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEnhancementMode('ux-reviewer')}>
-                        User Experience
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={handleEnhanceDescription}
-                    disabled={!editingFeature.description.trim() || isEnhancing}
-                    loading={isEnhancing}
-                  >
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    Enhance
-                  </Button>
-
-                  <ModelOverrideTrigger
-                    currentModelEntry={enhancementOverride.effectiveModelEntry}
-                    onModelChange={enhancementOverride.setOverride}
-                    phase="enhancementModel"
-                    isOverridden={enhancementOverride.isOverridden}
-                    size="sm"
-                    variant="icon"
-                  />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+            {/* Enhancement Section */}
+            <EnhanceWithAI
+              value={editingFeature.description}
+              onChange={(enhanced) =>
+                setEditingFeature((prev) => (prev ? { ...prev, description: enhanced } : prev))
+              }
+              onHistoryAdd={({ mode }) => setDescriptionChangeSource({ source: 'enhance', mode })}
+            />
           </div>
 
           {/* AI & Execution Section */}
