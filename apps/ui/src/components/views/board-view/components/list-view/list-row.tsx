@@ -6,51 +6,8 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertCircle, Lock, Hand, Sparkles, FileText } from 'lucide-react';
 import type { Feature } from '@/store/app-store';
-import type { PipelineConfig } from '@automaker/types';
 import { RowActions, type RowActionHandlers } from './row-actions';
 import { getColumnWidth, getColumnAlign } from './list-header';
-
-/**
- * Get the priority display configuration
- */
-function getPriorityDisplay(priority: number | undefined): {
-  label: string;
-  shortLabel: string;
-  colorClass: string;
-  bgClass: string;
-  borderClass: string;
-} | null {
-  if (!priority) return null;
-
-  switch (priority) {
-    case 1:
-      return {
-        label: 'High Priority',
-        shortLabel: 'High',
-        colorClass: 'text-[var(--status-error)]',
-        bgClass: 'bg-[var(--status-error)]/15',
-        borderClass: 'border-[var(--status-error)]/30',
-      };
-    case 2:
-      return {
-        label: 'Medium Priority',
-        shortLabel: 'Medium',
-        colorClass: 'text-[var(--status-warning)]',
-        bgClass: 'bg-[var(--status-warning)]/15',
-        borderClass: 'border-[var(--status-warning)]/30',
-      };
-    case 3:
-      return {
-        label: 'Low Priority',
-        shortLabel: 'Low',
-        colorClass: 'text-[var(--status-info)]',
-        bgClass: 'bg-[var(--status-info)]/15',
-        borderClass: 'border-[var(--status-info)]/30',
-      };
-    default:
-      return null;
-  }
-}
 
 export interface ListRowProps {
   /** The feature to display */
@@ -59,8 +16,6 @@ export interface ListRowProps {
   handlers: RowActionHandlers;
   /** Whether this feature is the current auto task (agent is running) */
   isCurrentAutoTask?: boolean;
-  /** Pipeline configuration for custom status colors */
-  pipelineConfig?: PipelineConfig | null;
   /** Whether the row is selected */
   isSelected?: boolean;
   /** Whether to show the checkbox for selection */
@@ -202,39 +157,6 @@ const IndicatorBadges = memo(function IndicatorBadges({
 });
 
 /**
- * PriorityBadge displays the priority indicator in the table
- */
-const PriorityBadge = memo(function PriorityBadge({ priority }: { priority: number | undefined }) {
-  const display = getPriorityDisplay(priority);
-
-  if (!display) {
-    return <span className="text-muted-foreground">-</span>;
-  }
-
-  return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium',
-              display.colorClass,
-              display.bgClass,
-              display.borderClass
-            )}
-          >
-            {display.shortLabel}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          <p>{display.label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-});
-
-/**
  * ListRow displays a single feature row in the list view table.
  *
  * Features:
@@ -264,7 +186,6 @@ export const ListRow = memo(function ListRow({
   feature,
   handlers,
   isCurrentAutoTask = false,
-  pipelineConfig,
   isSelected = false,
   showCheckbox = false,
   onToggleSelect,
