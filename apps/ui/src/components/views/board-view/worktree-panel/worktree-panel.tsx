@@ -15,6 +15,7 @@ import {
 } from './hooks';
 import {
   WorktreeTab,
+  DevServerLogsPanel,
   WorktreeMobileDropdown,
   WorktreeActionsDropdown,
   BranchSwitchDropdown,
@@ -89,6 +90,10 @@ export function WorktreePanel({
 
   // Track whether init script exists for the project
   const [hasInitScript, setHasInitScript] = useState(false);
+
+  // Log panel state management
+  const [logPanelOpen, setLogPanelOpen] = useState(false);
+  const [logPanelWorktree, setLogPanelWorktree] = useState<WorktreeInfo | null>(null);
 
   useEffect(() => {
     if (!projectPath) {
@@ -171,6 +176,18 @@ export function WorktreePanel({
     },
     [projectPath]
   );
+
+  // Handle opening the log panel for a specific worktree
+  const handleViewDevServerLogs = useCallback((worktree: WorktreeInfo) => {
+    setLogPanelWorktree(worktree);
+    setLogPanelOpen(true);
+  }, []);
+
+  // Handle closing the log panel
+  const handleCloseLogPanel = useCallback(() => {
+    setLogPanelOpen(false);
+    // Keep logPanelWorktree set for smooth close animation
+  }, []);
 
   const mainWorktree = worktrees.find((w) => w.isMain);
   const nonMainWorktrees = worktrees.filter((w) => !w.isMain);
@@ -320,6 +337,7 @@ export function WorktreePanel({
             onStartDevServer={handleStartDevServer}
             onStopDevServer={handleStopDevServer}
             onOpenDevServerUrl={handleOpenDevServerUrl}
+            onViewDevServerLogs={handleViewDevServerLogs}
             onRunInitScript={handleRunInitScript}
             hasInitScript={hasInitScript}
           />
@@ -376,6 +394,7 @@ export function WorktreePanel({
                   onStartDevServer={handleStartDevServer}
                   onStopDevServer={handleStopDevServer}
                   onOpenDevServerUrl={handleOpenDevServerUrl}
+                  onViewDevServerLogs={handleViewDevServerLogs}
                   onRunInitScript={handleRunInitScript}
                   hasInitScript={hasInitScript}
                 />
@@ -410,6 +429,15 @@ export function WorktreePanel({
           </div>
         </>
       )}
+
+      {/* Dev Server Logs Panel */}
+      <DevServerLogsPanel
+        open={logPanelOpen}
+        onClose={handleCloseLogPanel}
+        worktree={logPanelWorktree}
+        onStopDevServer={handleStopDevServer}
+        onOpenDevServerUrl={handleOpenDevServerUrl}
+      />
     </div>
   );
 }

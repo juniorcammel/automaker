@@ -34,6 +34,7 @@ import { createMigrateHandler } from './routes/migrate.js';
 import { createStartDevHandler } from './routes/start-dev.js';
 import { createStopDevHandler } from './routes/stop-dev.js';
 import { createListDevServersHandler } from './routes/list-dev-servers.js';
+import { createGetDevServerLogsHandler } from './routes/dev-server-logs.js';
 import {
   createGetInitScriptHandler,
   createPutInitScriptHandler,
@@ -108,6 +109,11 @@ export function createWorktreeRoutes(
   );
   router.post('/stop-dev', createStopDevHandler());
   router.post('/list-dev-servers', createListDevServersHandler());
+  router.get(
+    '/dev-server-logs',
+    validatePathParams('worktreePath'),
+    createGetDevServerLogsHandler()
+  );
 
   // Init script routes
   router.get('/init-script', createGetInitScriptHandler());
