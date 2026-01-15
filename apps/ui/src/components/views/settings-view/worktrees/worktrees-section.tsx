@@ -14,22 +14,14 @@ import {
   PanelBottomClose,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { apiGet, apiPut, apiDelete } from '@/lib/api-fetch';
-import { toast } from 'sonner';
 import { useAppStore } from '@/store/app-store';
 import { getHttpApiClient } from '@/lib/http-api-client';
+import { useWorktreeInitScript } from '@/hooks/queries';
+import { useSetInitScript, useDeleteInitScript } from '@/hooks/mutations';
 
 interface WorktreesSectionProps {
   useWorktrees: boolean;
   onUseWorktreesChange: (value: boolean) => void;
-}
-
-interface InitScriptResponse {
-  success: boolean;
-  exists: boolean;
-  content: string;
-  path: string;
-  error?: string;
 }
 
 export function WorktreesSection({ useWorktrees, onUseWorktreesChange }: WorktreesSectionProps) {
@@ -40,12 +32,20 @@ export function WorktreesSection({ useWorktrees, onUseWorktreesChange }: Worktre
   const setDefaultDeleteBranch = useAppStore((s) => s.setDefaultDeleteBranch);
   const getAutoDismissInitScriptIndicator = useAppStore((s) => s.getAutoDismissInitScriptIndicator);
   const setAutoDismissInitScriptIndicator = useAppStore((s) => s.setAutoDismissInitScriptIndicator);
+
+  // Local state for script content editing
   const [scriptContent, setScriptContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
-  const [scriptExists, setScriptExists] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // React Query hooks for init script
+  const { data: initScriptData, isLoading } = useWorktreeInitScript(currentProject?.path);
+  const setInitScript = useSetInitScript(currentProject?.path ?? '');
+  const deleteInitScript = useDeleteInitScript(currentProject?.path ?? '');
+
+  // Derived state
+  const scriptExists = initScriptData?.exists ?? false;
+  const isSaving = setInitScript.isPending;
+  const isDeleting = deleteInitScript.isPending;
 
   // Get the current show indicator setting
   const showIndicator = currentProject?.path
@@ -65,102 +65,43 @@ export function WorktreesSection({ useWorktrees, onUseWorktreesChange }: Worktre
   // Check if there are unsaved changes
   const hasChanges = scriptContent !== originalContent;
 
-  // Load init script content when project changes
+  // Sync query data to local state when it changes
   useEffect(() => {
-    if (!currentProject?.path) {
+    if (initScriptData) {
+      const content = initScriptData.content || '';
+      setScriptContent(content);
+      setOriginalContent(content);
+    } else if (!currentProject?.path) {
       setScriptContent('');
       setOriginalContent('');
-      setScriptExists(false);
-      setIsLoading(false);
-      return;
     }
+  }, [initScriptData, currentProject?.path]);
 
-    const loadInitScript = async () => {
-      setIsLoading(true);
-      try {
-        const response = await apiGet<InitScriptResponse>(
-          `/api/worktree/init-script?projectPath=${encodeURIComponent(currentProject.path)}`
-        );
-        if (response.success) {
-          const content = response.content || '';
-          setScriptContent(content);
-          setOriginalContent(content);
-          setScriptExists(response.exists);
-        }
-      } catch (error) {
-        console.error('Failed to load init script:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadInitScript();
-  }, [currentProject?.path]);
-
-  // Save script
-  const handleSave = useCallback(async () => {
+  // Save script using mutation
+  const handleSave = useCallback(() => {
     if (!currentProject?.path) return;
-
-    setIsSaving(true);
-    try {
-      const response = await apiPut<{ success: boolean; error?: string }>(
-        '/api/worktree/init-script',
-        {
-          projectPath: currentProject.path,
-          content: scriptContent,
-        }
-      );
-      if (response.success) {
+    setInitScript.mutate(scriptContent, {
+      onSuccess: () => {
         setOriginalContent(scriptContent);
-        setScriptExists(true);
-        toast.success('Init script saved');
-      } else {
-        toast.error('Failed to save init script', {
-          description: response.error,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to save init script:', error);
-      toast.error('Failed to save init script');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [currentProject?.path, scriptContent]);
+      },
+    });
+  }, [currentProject?.path, scriptContent, setInitScript]);
 
   // Reset to original content
   const handleReset = useCallback(() => {
     setScriptContent(originalContent);
   }, [originalContent]);
 
-  // Delete script
-  const handleDelete = useCallback(async () => {
+  // Delete script using mutation
+  const handleDelete = useCallback(() => {
     if (!currentProject?.path) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await apiDelete<{ success: boolean; error?: string }>(
-        '/api/worktree/init-script',
-        {
-          body: { projectPath: currentProject.path },
-        }
-      );
-      if (response.success) {
+    deleteInitScript.mutate(undefined, {
+      onSuccess: () => {
         setScriptContent('');
         setOriginalContent('');
-        setScriptExists(false);
-        toast.success('Init script deleted');
-      } else {
-        toast.error('Failed to delete init script', {
-          description: response.error,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to delete init script:', error);
-      toast.error('Failed to delete init script');
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [currentProject?.path]);
+      },
+    });
+  }, [currentProject?.path, deleteInitScript]);
 
   // Handle content change (no auto-save)
   const handleContentChange = useCallback((value: string) => {
