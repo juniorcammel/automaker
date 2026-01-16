@@ -11,6 +11,7 @@ import {
   Lightbulb,
   Brain,
   Network,
+  Settings,
 } from 'lucide-react';
 import type { NavSection, NavItem } from '../types';
 import type { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
@@ -32,6 +33,7 @@ interface UseNavigationProps {
     agent: string;
     terminal: string;
     settings: string;
+    projectSettings: string;
     ideation: string;
     githubIssues: string;
     githubPrs: string;
@@ -120,6 +122,12 @@ export function useNavigation({
         label: 'Memory',
         icon: Brain,
         shortcut: shortcuts.memory,
+      },
+      {
+        id: 'project-settings',
+        label: 'Settings',
+        icon: Settings,
+        shortcut: shortcuts.projectSettings,
       },
     ];
 
