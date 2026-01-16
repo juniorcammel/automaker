@@ -11,9 +11,13 @@ export { specOutputSchema } from '@automaker/types';
 
 /**
  * Escape special XML characters
+ * Handles undefined/null values by converting them to empty strings
  */
-function escapeXml(str: string): string {
-  return str
+function escapeXml(str: string | undefined | null): string {
+  if (str === undefined || str === null) {
+    return '';
+  }
+  return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
