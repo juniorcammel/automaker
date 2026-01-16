@@ -420,7 +420,6 @@ stty -echo 2>/dev/null || true
 
 # Interactive menu if no mode specified
 if [ -z "$MODE" ]; then
-    local timeout_count=0
     while true; do
         show_header
         show_menu
